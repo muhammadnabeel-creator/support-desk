@@ -1,0 +1,22 @@
+## Review
+
+**Verdict:** READY
+**Reviewer:** aidlc-product-lead-agent
+**Date:** 2026-10-19T14:38:43Z
+**Iteration:** 1
+
+### Findings
+
+| ID | Severity | Location | Finding | Required action | Status |
+|---|---|---|---|---|---|
+| R-01 | Major | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md > FR1.3, FR1.4, FR3.2 | The wire format of Category is ambiguous. FR1.3 says Category displays in JSON as "Account Access" (with a space). FR1.4 says enums are serialized as strings. FR3.2 says filter values are "the enum names" (AccountAccess). A developer cannot tell whether responses return "AccountAccess" or "Account Access", or whether `?category=Account Access` is accepted. QA cannot write a pass/fail test for it. | State one response representation for Category, and say which spellings the `category` filter accepts (for example both forms, case-insensitive). Add an acceptance criterion that filters by a multi-word category. | New |
+| R-02 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md > FR7.4 | The cross-reference is wrong. FR7.4 says "controlled error (FR9)", but FR9 is the dashboard and errors are FR10. | Change the reference to FR10, and check the other bracketed cross-references. | New |
+| R-03 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md > FR10.2, NFR3, NFR6, FR2.4 | Several concrete decisions were not asked in the Q&A and are not listed under Assumptions for correction at approval. They are the 502/503/504 status mapping, RFC 7807 ProblemDetails, the 20-second AI timeout, "under 500 ms for 1,000 tickets", and the title and description limits. A2 covers only the length limits. | Add these to Assumptions, with the reason for each, so the human can correct them at the gate. | New |
+| R-04 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md > FR7, FR8, FR5 | Several corners are silent. Analyze and draft-reply on a Closed or Resolved ticket are neither allowed nor refused. A malformed request body, an unparseable body, or a non-positive or non-integer `{id}` has no specified result (400 or 404). PUT with a missing field has no acceptance criterion. A concurrent analyze and edit is covered only by A5 (last write wins). | Add one line each: a requirement, an assumption with its reason, or out of scope. Suggested defaults: allow AI on any status; malformed JSON or a bad id returns 400 ProblemDetails. | New |
+| R-05 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md > FR7.3 | The AI's suggested priority overwrites the user's priority silently (Q2 answer A), and there is no history to recover the old value (history is out of scope). The decision was made by the human, but the consequence is not recorded. | Add a one-line note recording this as an accepted consequence. Optionally return the previous priority in the analyze response. | New |
+| R-06 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md > FR8.2 | The draft-reply response has a `"status": "Draft — requires human review; not sent"` field. It collides in name with the ticket `Status` enum, and the exact response shape is not defined. | Use a distinct field name (for example `notice`) and define the response shape. Add an acceptance criterion that the notice is present. | New |
+| R-07 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md > FR11, FR12, Constraints | The brief's checklist asks for example requests and responses (or an API collection), a demo and a code walkthrough. Only the README (NFR10) and Swagger are covered, and the demo and walkthrough appear in neither Constraints nor Out of scope. | State whether the example requests and the demo and walkthrough are in scope as deliverables, or exclude them explicitly. | New |
+
+### Summary
+
+The requirements are broadly implementable. The affirmed rules and the Q1-Q8 and FQ1 answers are reflected faithfully, the brief's FR-01..FR-10 are all covered, and most requirements carry testable Given/When/Then criteria. One ambiguity should be settled before approval, the Category JSON representation versus the filter spelling. The remaining items are minor clean-ups and unlisted assumptions the human can correct at the gate.

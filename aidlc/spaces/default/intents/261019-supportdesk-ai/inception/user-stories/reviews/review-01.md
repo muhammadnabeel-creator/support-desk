@@ -1,0 +1,21 @@
+## Review
+
+**Verdict:** READY
+**Reviewer:** aidlc-product-lead-agent
+**Date:** 2026-10-19T14:44:58Z
+**Iteration:** 1
+
+### Findings
+
+| ID | Severity | Location | Finding | Required action | Status |
+|---|---|---|---|---|---|
+| R-01 | Major | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/user-stories/stories.md > US1.2, US1.4, US2.1, US2.2, US2.4 | Several requirement rules have no acceptance criterion, so QA cannot test them from the stories. The `category` filter and case-insensitive filter values (FR3.2) are not covered, although the US1.2 text promises category filtering. The tie-break ordering (FR3.1) is not covered. A PUT with a missing `priority` (FR5.1, all three fields required) is not covered. The 1–500 character limits on AI `summary` and `suggestedAction` (FR7.2) are not covered. The 4000-character draft limit (FR8.2) is not covered. Trimming before length checks (FR2.4) is not covered. | Add Given/When/Then criteria for each of these rules, or state in the story that the requirement criterion is the test source. At minimum add a category filter criterion, a PUT missing-priority 400 criterion, and over-length AI summary and over-length draft rejection criteria. | New |
+| R-02 | Major | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/user-stories/stories.md > AC2.4.3 and AC2.3.1/AC2.3.2 | AC2.4.3 says "a controlled error is returned" for an empty or failed draft, with no status code. Requirements say 502 for provider errors and invalid output, 504 for timeout, and 503 for not configured. A test cannot assert "controlled". The draft-reply path is also not stated for invalid or empty output (502 is implied). | Name the status code for empty or invalid draft output (502 per FR10.2). State that the unchanged-ticket guarantee also applies when a draft fails, so a previous draft is not overwritten. | New |
+| R-03 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/user-stories/stories.md > US4.2 | US4.2 depends on "all Must Have stories" and is verified manually. This conflicts with the phase rule that stories be independently testable and not sequence-dependent. It mixes the README check, Swagger, persistence and `dotnet test` in one story. AC4.2.3 duplicates AC1.1.4. | Split the README and Swagger checks from the clean-test-run check, or label US4.2 as a release-gate acceptance story, not an independent feature story. Drop the duplicate AC4.2.3. | New |
+| R-04 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/user-stories/stories.md > US2.1, US2.4 | Two edge cases are not settled: analyzing or drafting for a Closed or Resolved ticket, and whether a manually edited priority is lost on re-analysis. FR7.3 overwrites priority, and AC2.1.2 only covers Medium to High. Concurrent edits (A5) are a stated assumption with no story note. | Add one line to each story saying the behaviour is allowed for any status and that a re-analysis overwrites a manual priority. Alternatively record both as accepted assumptions. | New |
+| R-05 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/user-stories/stories.md > AC1.1.4 vs FR1.5, AC1.5.1 | `updatedAt` refresh on a status change is required by FR1.5 but only asserted for PUT (AC1.4.1). AC2.1.1 does not assert `updatedAt` for analysis or drafts. | Add `updatedAt` assertions to AC1.5.1, AC2.1.1 and AC2.4.1. | New |
+| R-06 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/inception/user-stories/stories.md > Story Map | Numbering is out of order in the Story Map (US4.4 is listed before US4.3 in the Must Have column). The MoSCoW table has no Could Have or Won't Have entries. | Reorder the map, and list the out-of-scope items (delete, pagination) as Won't Have. | New |
+
+### Summary
+
+The set is close to implementable. All FR and NFR items are traced, deferrals are named, each story states actor, action and value, and the criteria are Given/When/Then and fake-AI testable. Two Major gaps weaken QA's ability to test from the stories alone: validation rules from the requirements that have no criterion, and an unspecified "controlled error" for draft failures. These are fixable at the gate by Request Changes or acceptable as workarounds, since requirements.md still holds the exact rules.
