@@ -91,3 +91,8 @@ dotnet_naming_rule.members_are_pascal_case.severity = warning
 dotnet_naming_rule.parameters_locals_are_camel_case.symbols = parameters_locals
 dotnet_naming_rule.parameters_locals_are_camel_case.style = camel_case
 dotnet_naming_rule.parameters_locals_are_camel_case.severity = suggestion
+
+# EF Core migrations are tool-generated and never edited once committed,
+# so formatters and analyzers leave them as the tool wrote them.
+[**/Migrations/*.cs]
+generated_code = true

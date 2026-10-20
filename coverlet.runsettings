@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Coverage settings for coverlet.collector ("XPlat Code Coverage").
+  The team measures line coverage on hand-written code only (floor: 80%):
+  EF Core migrations and Program.cs are excluded; nothing else is.
+  Opt-in: pass this file with settings only when measuring coverage, so plain
+  test runs stay fast. From the repository root:
+    dotnet test settings=coverlet.runsettings collect="XPlat Code Coverage"
+  (written here without the leading dashes, which XML comments cannot hold;
+  the exact command is in the README / test instructions).
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[SupportDesk.Api]*</Include>
+          <ExcludeByFile>**/Infrastructure/Migrations/*.cs,**/Program.cs</ExcludeByFile>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

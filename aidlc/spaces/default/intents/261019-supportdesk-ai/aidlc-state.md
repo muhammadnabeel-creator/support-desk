@@ -59,11 +59,8 @@
 
 
 
-- **Active Unit**: u1-foundation-tickets
 
-- **Unit Stage**: code-generation
 
-- **Unit State**: in-progress
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -126,7 +123,7 @@ Per unit: [TBD]
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-10-20T10:04:10Z
+- **Last Updated**: 2026-10-20T11:40:24Z
 
 - **Construction Autonomy Mode**: gated
 
