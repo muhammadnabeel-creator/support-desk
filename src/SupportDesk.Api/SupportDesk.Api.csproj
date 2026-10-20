@@ -4,9 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- XML doc comments feed Swagger. CS1591 (missing comment) is silenced until Step 11 adds the comments. -->
+    <!-- XML doc comments feed Swagger. CS1591 (missing comment) is on: every public member needs a summary. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

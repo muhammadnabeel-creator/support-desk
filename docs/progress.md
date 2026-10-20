@@ -17,8 +17,13 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 - [x] Functional design (entities, 22 rules, 6 workflows) — reviewed READY, approved 2026-10-20
 - [x] Non-functional requirements (performance, security, reliability, logging, tech stack) — reviewed READY, approved 2026-10-20
 - [x] Non-functional design (security layers, fixed DB path, logging, components) — reviewed READY, approved 2026-10-20
-- [ ] Code plan (approved by you before any code)
-- [ ] Code + tests written
+- [x] Code plan (approved 2026-10-20; built in 5 tasks A–E, each approved by you)
+- [x] Task A — repo setup, solution, API project, test runner (2 smoke tests green; committed by you)
+- [x] Task B — data model and database (Ticket, enums, DbContext, fixed DB path, first migration) — approved 2026-10-20 (3 early test files kept uncommitted for Task F)
+- [x] Task C — error handling and ticket business logic — approved 2026-10-20
+- [x] Task D — API endpoints (tests deferred to F) — smoke-checked with curl, approved 2026-10-20
+- [x] Task E — configuration, docs, format — approved 2026-10-20
+- [ ] Task F — tests (deferred; only when you say) and the 80% coverage check
 - [ ] `dotnet build && dotnet test` passes; Unit 1 approved; merged to `main`
 
 ## Unit 2 — AI Assistant
