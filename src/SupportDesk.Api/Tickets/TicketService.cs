@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SupportDesk.Api.Ai;
 using SupportDesk.Api.Domain;
 using SupportDesk.Api.Errors;
 using SupportDesk.Api.Infrastructure;
@@ -6,9 +7,12 @@ using SupportDesk.Api.Infrastructure;
 namespace SupportDesk.Api.Tickets;
 
 /// <summary>
-/// Implements the ticket rules (BR1.1-BR5.2) with EF Core directly (ADR-004). Depends only on the
-/// database and the clock, never on the AI service (BR6.5). Validation collects every failing field
-/// before raising one <see cref="ValidationFailedException"/>, whose keys are camelCase JSON names.
+/// Implements the ticket rules (BR1.1-BR5.2, BR7.1-BR9.4) with EF Core directly (ADR-004). The AI service is
+/// used only by <see cref="AnalyzeAsync"/> and <see cref="DraftReplyAsync"/>; the CRUD operations depend on the
+/// database and the clock alone (BR6.5, NFR1.2). Validation collects every failing field before raising one
+/// <see cref="ValidationFailedException"/>, whose keys are camelCase JSON names. AI failures are not caught here:
+/// they propagate unchanged to the global exception handler, and because they happen before any field is
+/// assigned, nothing is saved (BR7.6).
 /// </summary>
 public sealed class TicketService : ITicketService
 {
@@ -26,14 +30,17 @@ public sealed class TicketService : ITicketService
 
     private readonly SupportDeskDbContext _db;
     private readonly IClock _clock;
+    private readonly IAiTicketService _ai;
 
     /// <summary>Creates the service.</summary>
     /// <param name="db">The database context (scoped per request).</param>
     /// <param name="clock">Supplies UTC timestamps.</param>
-    public TicketService(SupportDeskDbContext db, IClock clock)
+    /// <param name="ai">The AI assistant; used only by the analyze and draft-reply operations.</param>
+    public TicketService(SupportDeskDbContext db, IClock clock, IAiTicketService ai)
     {
         _db = db;
         _clock = clock;
+        _ai = ai;
     }
 
     /// <inheritdoc />
@@ -140,6 +147,60 @@ public sealed class TicketService : ITicketService
         await _db.SaveChangesAsync(cancellationToken);
         return ticket;
     }
+
+    /// <inheritdoc />
+    public async Task<TicketAnalysisOutcome> AnalyzeAsync(int id, CancellationToken cancellationToken)
+    {
+        // Load first, so an unknown id is a 404 and the AI is never called (BR7.2). Status is not checked (BR7.1).
+        var ticket = await LoadTrackedAsync(id, cancellationToken);
+
+        // Only title and description go to the AI (BR7.3). If this throws, nothing has been changed (BR7.6).
+        var analysis = await _ai.AnalyzeAsync(ticket.Title, ticket.Description, cancellationToken);
+
+        // Replace the whole earlier analysis (BR7.5) and overwrite the priority (BR7.4). Status is never touched (BR8.5).
+        var previousPriority = ticket.Priority;
+        ticket.Category = analysis.Category;
+        ticket.Sentiment = analysis.Sentiment;
+        ticket.AiSummary = analysis.Summary;
+        ticket.SuggestedAction = analysis.SuggestedAction;
+        ticket.Priority = analysis.Priority;
+        ticket.UpdatedAt = _clock.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return new TicketAnalysisOutcome(ticket, previousPriority);
+    }
+
+    /// <inheritdoc />
+    public async Task<Ticket> DraftReplyAsync(int id, CancellationToken cancellationToken)
+    {
+        // Load first, so an unknown id is a 404 and the AI is never called (BR7.2). Status is not checked (BR7.1).
+        var ticket = await LoadTrackedAsync(id, cancellationToken);
+
+        // If this throws, nothing has been changed (BR7.6).
+        var draft = await _ai.DraftReplyAsync(
+            ticket.Title,
+            ticket.Description,
+            CreateDraftContext(ticket),
+            cancellationToken);
+
+        // Replace any earlier draft; both timestamps share one instant (BR9.2). The draft is stored, never sent (BR9.4).
+        var now = _clock.UtcNow;
+        ticket.DraftReply = draft.Draft;
+        ticket.DraftReplyGeneratedAt = now;
+        ticket.UpdatedAt = now;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return ticket;
+    }
+
+    /// <summary>
+    /// Builds the saved-analysis context for a draft, or null when the ticket has not been analyzed
+    /// (<c>Category</c> is not set). The current priority is not part of it (reliability design, Draft Input).
+    /// </summary>
+    private static AiDraftContext? CreateDraftContext(Ticket ticket) =>
+        ticket.Category is { } category
+            ? new AiDraftContext(category, ticket.Sentiment, ticket.AiSummary, ticket.SuggestedAction)
+            : null;
 
     private async Task<Ticket> LoadTrackedAsync(int id, CancellationToken cancellationToken)
     {
