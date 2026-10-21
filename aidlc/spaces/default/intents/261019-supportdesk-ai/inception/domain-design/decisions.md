@@ -25,7 +25,7 @@ Split the code into three building blocks: **Tickets** (owns Ticket, all CRUD/st
 ## ADR-002: AiAssistant validates all AI output before anyone else sees it
 
 ### Status
-Accepted (2026-10-19)
+Accepted (2026-10-19). Amended 2026-10-20: the Mock provider was dropped (Groq only, decided in U2 Functional Design); the boundary and the shared validator are unchanged, and tests use hand-written fakes of `IAiTicketService`. References to Mock below are historical.
 
 ### Context
 Hard rules: never save or return AI output that has not been validated against a typed DTO and allowed values; never execute AI output; never send personal data to an external AI; always time out AI calls. Two providers (Mock and Groq) must behave identically from the caller's point of view.
@@ -97,3 +97,34 @@ Services throw a small set of meaningful exceptions: ticket not found, AI timeou
 
 ### Alternatives Rejected
 - **Result objects mapped in each controller**: explicit, but repeats mapping logic in every controller and makes controllers thicker.
+
+## ADR-006: MCP server runs as a startup mode of the API project and calls the same services
+
+### Status
+Accepted (2026-10-21, MCP change request; answers MQ4 and MFQ1 in `domain-design-questions.md`)
+
+### Context
+The trainer's updated brief (FR-11 to FR-13; our FR13–FR15) requires an MCP server built with the official C# MCP SDK, stdio transport, exposing eight tools that "call the same service layer as the REST endpoints and must not duplicate business logic". The brief allows a separate project or a startup mode of the API host. The person wants the MCP code kept in the same project as the API, with each tool calling the same service methods the controllers call. Units U1 and U2 are already built and merged, so the change must not disturb them.
+
+### Decision
+- The MCP server lives in `src/SupportDesk.Api` (an `Mcp/` folder) and starts when the API is launched with `--mcp`: the program then builds a generic host with `AddMcpServer().WithStdioServerTransport()` instead of the web host.
+- The ticket and dashboard services, the database context, the clock and the AI client are registered by one shared registration method used by both hosts, so the REST controllers and the MCP tools resolve the same implementations.
+- Each tool calls the same service method as its REST endpoint (`ITicketService` for seven tools, the Dashboard service for `get_dashboard_summary`). There is no HTTP hop: the web API does not need to be running.
+- Typed failures are mapped to tool error results by one MCP error mapper that reuses the REST handler's titles, details and status codes, so both entry points report failures the same way.
+- **Launch**: the client starts the already built output (`dotnet <repo>/src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll --mcp`), not `dotnet run`, so build messages can never reach standard output. The README says to run `dotnet build` first.
+- **Logging**: the MCP host clears the default logging providers and adds only the console logger with `LogToStandardErrorThreshold = LogLevel.Trace`, so every log line goes to standard error and standard output carries MCP messages only.
+- **Database path**: the MCP host sets its content root to the API project folder, found by walking up from `AppContext.BaseDirectory` (the `bin/...` folder) to the folder that contains `SupportDesk.Api.csproj`. `DatabasePath` then resolves `App_Data/supportdesk.db` exactly as it does for the web API, whatever working directory the client launches from. If no project folder is found (for example a published copy), an explicit absolute `ConnectionStrings__SupportDesk` environment variable in the client configuration is used instead, and the README shows it.
+- **Configuration and the Groq key**: an MCP client launches the process without `ASPNETCORE_ENVIRONMENT`, so it runs as Production, where user secrets are not loaded by default. The MCP host therefore adds user secrets explicitly (`AddUserSecrets<Program>(optional: true)`) after `appsettings.json` and before environment variables. The key set once with `dotnet user-secrets` works for both hosts, and an `Ai__Groq__ApiKey` environment variable in the client configuration still overrides it.
+- **DI scope**: the MCP SDK creates a service scope for each tool call. Tools receive `ITicketService` and the dashboard service as method parameters resolved from that scope, so each call gets its own `DbContext`, just like an HTTP request.
+- **Shared registration**: the existing service registrations in `Program.cs` (DbContext, clock, ticket service, AI options and HTTP client, dashboard service) move into one extension method used by both hosts. The web host keeps controllers, Swagger and the exception handler. The existing `WebApplicationFactory` tests keep working because the web host registers the same services as before.
+- **Shared database file**: the web API and an MCP process may run at the same time on the same SQLite file. SQLite file locking serialises writes, and concurrent edits are last-write-wins (A5). A write blocked by a lock longer than SQLite's busy timeout becomes the generic 500 error on either side. Neither host creates or migrates the schema (`dotnet ef database update` does).
+
+### Consequences
+- Positive: one project, one set of services and one configuration (the same user-secrets ID, loaded explicitly by the MCP host, so the Groq key set for the API works for MCP); the "no duplicated business logic" rule holds by construction; easy to show in the walkthrough ("the controller and the tool call the same method").
+- Negative: `Program.cs` branches between two hosts, and the API project now references the MCP SDK even when running as a web server; the web-only setup (controllers, Swagger, exception handler) must stay out of the MCP host.
+- Security: stdio only, so no new network listener; tool arguments go through the same validation as API requests; the error mapper is the one place guaranteeing that no stack traces, exception types or secrets reach the MCP client. Loading user secrets outside Development is acceptable because the MCP server is a local, single-user process; secrets still live only in the user profile, never in the repository. Logs on standard error are seen by the MCP client, so the existing rule that logs never contain the key, ticket text or AI text matters here too.
+
+### Alternatives Rejected
+- **Separate console project `SupportDesk.Mcp` referencing the API project**: clean separation, but the person wants the MCP code in the same project as the API, and it needs a second user-secrets setup.
+- **Shared class library `SupportDesk.Core` used by both**: the cleanest split, but it moves about 30 already-merged files and adds a layer the brief does not need.
+- **Tools calling the REST endpoints over HTTP**: requires the web API to be running at the same time and translating ProblemDetails back; further from the brief's "same service layer" wording (MFQ1 answer A).

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using SupportDesk.Api.Ai;
+using SupportDesk.Api.Dashboard;
 using SupportDesk.Api.Errors;
 using SupportDesk.Api.Infrastructure;
 using SupportDesk.Api.Tickets;
@@ -67,6 +68,7 @@ builder.Services.AddDbContext<SupportDeskDbContext>((services, options) =>
 });
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // AI settings (WF9, NFR3.10, NFR4.3). A bad endpoint, model or timeout stops startup with a message naming the
 // key. The API key is deliberately not validated: without it the app still starts, ticket operations work, and

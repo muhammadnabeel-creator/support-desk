@@ -1,6 +1,6 @@
 # Components — SupportDesk AI
 
-Sources: `inception/requirements-analysis/requirements.md` (FR1–FR12, NFR1–NFR10), `inception/user-stories/stories.md` (US1.1–US4.4), `inception/practices-discovery/team-practices.md` (thin controllers, services via DI, DTOs separate from entities, no unnecessary layers), and the answers in `domain-design-questions.md`. Decisions are recorded in `decisions.md` (ADR-001 to ADR-005).
+Sources: `inception/requirements-analysis/requirements.md` (FR1–FR15, NFR1–NFR12), `inception/user-stories/stories.md` (US1.1–US5.5; group 5 MCP added 2026-10-21), `inception/practices-discovery/team-practices.md` (thin controllers, services via DI, DTOs separate from entities, no unnecessary layers), and the answers in `domain-design-questions.md`. Decisions are recorded in `decisions.md` (ADR-001 to ADR-006).
 
 ## Component Catalogue
 
@@ -45,9 +45,9 @@ components:
     summary: Talks to the AI provider and turns its untrusted output into validated, typed results.
     behaviour: >
       Exposes the IAiTicketService contract with two operations: analyze a ticket's title and
-      description, and draft a reply. Two interchangeable providers implement it: a deterministic,
-      clearly labelled Mock (default, no network, output marked [MOCK]) and Groq (OpenAI-compatible
-      chat completions), chosen by configuration. Builds prompts that wrap ticket text as data and ask
+      description, and draft a reply. One provider implements it: Groq (OpenAI-compatible chat
+      completions); there is no mock provider (decision 2026-10-20), and tests use hand-written fakes
+      of the interface. Builds prompts that wrap ticket text as data and ask
       for JSON only. Applies a configurable timeout (default 20 s) and honours cancellation. Validates
       every response before returning it: must be JSON with category, priority, sentiment in the
       allowed lists (case- and space-tolerant), summary and suggestedAction 1-500 chars; drafts
@@ -55,8 +55,8 @@ components:
       error and "not configured" (Groq with no key) as distinct failures. Never executes AI output,
       never logs or returns the API key or raw provider responses, holds no ticket data.
     responsibilities:
-      - IAiTicketService contract and provider selection (FR11)
-      - Mock and Groq providers (FR11)
+      - IAiTicketService contract (FR11)
+      - Groq provider (FR11)
       - Prompt construction that treats ticket text as data (NFR4)
       - AI-output validation for analysis and drafts (FR7.2, FR8.2)
       - Timeout and failure classification (NFR3, FR10.2)
@@ -82,11 +82,45 @@ components:
       - component: Tickets
         interaction: Reads ticket data owned by Tickets, read-only, to compute counts
         style: sync
-    dependents: []
+    dependents:
+      - component: McpServer
+        interaction: McpServer asks for the summary counts for the get_dashboard_summary tool
     external_dependencies:
       - name: SQLite (via EF Core)
         kind: database
         purpose: Read-only count queries over the Ticket table
+    entities: []
+
+  - name: McpServer
+    summary: Lets MCP clients (LLM assistants) use SupportDesk through eight tools that call the existing services.
+    behaviour: >
+      Runs as a startup mode of the API project (`--mcp`), talking MCP over stdio only; nothing listens
+      on the network. Exposes exactly eight tools: create_ticket, list_tickets, get_ticket,
+      update_ticket, update_ticket_status, analyze_ticket, draft_reply and get_dashboard_summary. Each
+      tool maps its typed arguments to one call on the same service method the REST controller uses
+      (Tickets or Dashboard) and maps the result to structured JSON with the REST field names. It holds
+      no business rules, no data access and no AI calls of its own, so validation, persistence and AI
+      safety come from the services unchanged. Failures (validation, not found, AI not configured,
+      timeout, provider error, invalid output, unexpected) become tool error results with the same safe
+      title, detail and status as the REST ProblemDetails; never stack traces or secrets. Writes only
+      MCP messages to standard output; logs go to standard error. No delete tool. draft_reply returns a
+      draft and sends nothing.
+    responsibilities:
+      - MCP stdio server and tool registration (FR13, FR14.1)
+      - Mapping tool arguments to service calls and results to structured output (FR14.2, FR14.3)
+      - Mapping typed failures to safe tool error results (FR14.4, FR15.3)
+    depends_on:
+      - component: Tickets
+        interaction: Calls the same ticket service methods as the REST controller for seven tools
+        style: sync
+      - component: Dashboard
+        interaction: Calls the dashboard summary for get_dashboard_summary
+        style: sync
+    dependents: []
+    external_dependencies:
+      - name: MCP client (for example Claude Code)
+        kind: other
+        purpose: Starts the server as a local process and calls its tools over stdio
     entities: []
 ```
 
@@ -96,9 +130,11 @@ components:
 graph LR
     Tickets -->|"analyze / draft request (validated result back)"| AiAssistant
     Dashboard -->|"read-only ticket counts"| Tickets
+    McpServer -->|"same service calls as REST (7 tools)"| Tickets
+    McpServer -->|"summary counts"| Dashboard
 ```
 
-<!-- Text fallback: Tickets calls AiAssistant to analyze tickets and draft replies and receives validated results. Dashboard reads ticket data owned by Tickets, read-only, to compute counts. AiAssistant depends on no other component. -->
+<!-- Text fallback: Tickets calls AiAssistant to analyze tickets and draft replies and receives validated results. Dashboard reads ticket data owned by Tickets, read-only, to compute counts. McpServer calls the same Tickets service methods as the REST controllers for seven tools and the Dashboard summary for the eighth. AiAssistant depends on no other component; nothing depends on McpServer. -->
 
 Shared plumbing that is not a building block (it owns no business data or rules): the HTTP controllers for each component, the global exception handler that maps typed failures to ProblemDetails (ADR-005), Swagger, configuration binding, and the EF Core database context.
 
@@ -107,8 +143,9 @@ Shared plumbing that is not a building block (it owns no business data or rules)
 | Component | Purpose | Depends On | Dependents | Entities Owned |
 |---|---|---|---|---|
 | Tickets | Ticket lifecycle, filtering, analyze/draft orchestration, only writer of ticket data | AiAssistant | Dashboard | Ticket |
-| AiAssistant | AI provider access (Mock, Groq), prompts, AI-output validation, timeouts | — | Tickets | — |
-| Dashboard | Summary counts | Tickets (read-only data) | — | — |
+| AiAssistant | AI provider access (Groq), prompts, AI-output validation, timeouts | — | Tickets | — |
+| Dashboard | Summary counts | Tickets (read-only data) | McpServer | — |
+| McpServer | MCP stdio server with eight tools that call the existing services | Tickets, Dashboard | — | — |
 
 ## Entity Ownership
 
@@ -125,6 +162,7 @@ AI analysis results and drafts are transient values passed from AiAssistant to T
 | Tickets | SQLite (via EF Core) | database | Persist tickets across restarts |
 | AiAssistant | Groq API | third-party-api | Real AI analysis and drafts when configured |
 | Dashboard | SQLite (via EF Core) | database | Read-only count queries |
+| McpServer | MCP client (e.g. Claude Code) | other | Starts the server and calls tools over stdio |
 
 ## Rationale
 
@@ -133,5 +171,6 @@ AI analysis results and drafts are transient values passed from AiAssistant to T
 | Tickets | Distinct data ownership: the only component that stores and changes tickets, so every ticket rule (validation, status, AI result application, UpdatedAt) lives in one place. |
 | AiAssistant | Distinct concern and change rate: provider, prompts and validation change independently of ticket rules; isolating untrusted AI output behind one boundary enforces the "never save unvalidated AI output" rule and lets tests replace the AI with a fake. |
 | Dashboard | Distinct reader with no writes and no rules about tickets' lifecycle; keeping counting out of Tickets keeps Tickets focused and lets the dashboard work whatever the AI state. |
+| McpServer | Distinct entry point and protocol (MCP over stdio) with its own failure format (tool error results); like the REST controllers it owns no data or rules, but it is a separate block because it is a second, independently started way into the system with its own safety rules (FR15). See ADR-006. |
 
 **Alternatives rejected** (see ADR-001): a fourth TicketAiWorkflow block (extra layer for a two-step flow, against the "no unnecessary layers" practice) and a two-block split folding Dashboard into Tickets (mixes reporting with lifecycle rules).

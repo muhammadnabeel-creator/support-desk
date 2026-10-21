@@ -45,4 +45,6 @@ Source: `inception/requirements-analysis/requirements.md` (Intent Analysis, A1) 
 | 2 | Riley (Reviewer) | Decides whether the project passes; owns setup, safety and example-request stories. |
 | 3 | Lee (Support Lead) | Reads the dashboard only; one story. |
 
+Since the MCP change request (2026-10-21), Sam can also work through an MCP client (Claude Code) that calls SupportDesk tools on Sam's behalf; Sam's goals and pain points are unchanged, the assistant is just another way in.
+
 Sam creates the data that Lee's dashboard summarises; Riley acts as Sam and Lee during the demo, then checks the setup and safety stories.

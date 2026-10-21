@@ -43,3 +43,24 @@ B. Services return a Result object (success or error code) and each controller m
 X. Other (please specify)
 
 [Answer]: A
+
+## Change Request 2026-10-21 — MCP server
+
+### MQ4. Where should the MCP server live in the solution?
+The brief allows "a separate project in the solution or a startup mode of the API host". The tools must call the same services as the REST API (FR14.2).
+
+A. (Suggested) A separate console project `src/SupportDesk.Mcp` that references the API project and reuses its services, database setup and AI configuration through one shared registration method; the API stays unchanged apart from moving its service registration into that method
+B. A startup mode of the API: `dotnet run --project src/SupportDesk.Api -- --mcp` starts an MCP host instead of the web server (one project, but Program.cs branches between two hosts)
+C. Move services, data and AI into a new class library `SupportDesk.Core` referenced by both the API and a separate MCP project (cleanest split, but refactors merged code and adds a layer)
+X. Other (please specify)
+
+[Answer]: X — we need to keep it in dsame fodler as apis also the tools should call the apis we wrote
+
+### MFQ1. Inside the API project, what exactly should each tool call?
+You chose to keep the MCP server in the API project (`src/SupportDesk.Api/Mcp/`, started with `dotnet run --project src/SupportDesk.Api -- --mcp`). "Call the APIs we wrote" can mean two things. The brief (FR-12) says each tool "calls the same service layer as the REST endpoints".
+
+A. (Suggested) Each tool calls the same C# service methods the controllers call (`ITicketService`, the dashboard service): no HTTP in between, works without the web API running, and matches FR-12 word for word
+B. Each tool sends an HTTP request to our REST endpoints (`http://localhost:5189/api/...`): the web API must be running at the same time, and errors come back as ProblemDetails to translate
+X. Other (please specify)
+
+[Answer]: A

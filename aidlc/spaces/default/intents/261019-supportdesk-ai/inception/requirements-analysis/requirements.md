@@ -7,13 +7,24 @@ SupportDesk AI is a support-ticket management Web API built as a trainee assessm
 - **Request type**: new greenfield application, multi-component (API, persistence, AI integration, tests). [desc]
 - **Complexity / depth**: Standard. Endpoints are well defined by the brief; the open decisions were settled in `requirements-analysis-questions.md`. [scope]
 - **Primary actor**: a support agent using the API through Swagger (no frontend required). [desc]
-- **Success**: all ten brief requirements (FR-01..FR-10) work, data persists across restarts, AI output is validated or rejected in a controlled way, and the definition of done in the brief is met within 5 days. [desc]
+- **Success**: all brief requirements (FR-01..FR-13) work, data persists across restarts, AI output is validated or rejected in a controlled way, an MCP client can list and call the eight SupportDesk tools, and the definition of done in the brief is met within 5 days. [desc]
+- **Change Request 2026-10-21**: the trainer's updated brief adds an MCP server (FR-11 to FR-13, recorded here as FR13–FR15 with NFR11–NFR12). FR-01..FR-10 are unchanged, so the delivered units U1 and U2 stay valid. [desc-v2; MQ1–MQ3]
 
 Working practices (branching, test-after with xUnit, 80% coverage floor, local checks in place of CI, `.editorconfig` + `dotnet format`, documented `dotnet ef database update`) come from the affirmed `team-practices.md` and are not repeated here except where they constrain a requirement. [memory:team-practices]
 
 ## Functional Requirements
 
-Brief IDs (FR-01..FR-10) are kept in brackets for traceability to the source document.
+Brief IDs (FR-01..FR-13) are kept in brackets for traceability to the source document. Our numbering differs from the brief's, so the mapping is:
+
+| Brief | Ours | | Brief | Ours |
+|---|---|---|---|---|
+| FR-01 Create | FR2 | | FR-08 Dashboard | FR9 |
+| FR-02 List | FR3 | | FR-09 Failure handling | FR10 |
+| FR-03 Get | FR4 | | FR-10 Configuration | FR11 |
+| FR-04 Update | FR5 | | FR-11 MCP server | FR13 |
+| FR-05 Status | FR6 | | FR-12 MCP tools | FR14 |
+| FR-06 AI analysis | FR7 | | FR-13 MCP safety and setup | FR15 |
+| FR-07 Draft reply | FR8 | | §5 data model; §3 Swagger | FR1; FR12 |
 
 ### FR1 — Ticket data model [brief §5; Q2, Q3, Q4, Q6, Q7]
 - **FR1.1** A Ticket has: `Id` (integer, database-generated), `Title`, `Description`, `Status`, `Priority`, `Category` (nullable), `Sentiment` (nullable), `AiSummary` (nullable), `SuggestedAction` (nullable), `DraftReply` (nullable), `DraftReplyGeneratedAt` (nullable, UTC), `CreatedAt` (UTC), `UpdatedAt` (UTC).
@@ -88,10 +99,50 @@ Brief IDs (FR-01..FR-10) are kept in brackets for traceability to the source doc
 - **FR11.2** There is no mock provider and no provider switch; Groq is always used for the AI endpoints.
 - **FR11.3** Groq settings: `Ai:Groq:ApiKey` (from `dotnet user-secrets` or environment variable only), `Ai:Groq:Model` (default `openai/gpt-oss-120b`), `Ai:Groq:BaseUrl`, `Ai:TimeoutSeconds`. Committed `appsettings.json` and `.env.example` hold placeholders only.
 - **FR11.4** (withdrawn 2026-10-20 with the mock provider.)
-- **AC11.1** Given `Ai:Provider = Groq` and no API key, Then AI endpoints return 503 "AI provider not configured" and all ticket CRUD endpoints still work.
+- **AC11.1** Given no Groq API key is configured, Then AI endpoints return 503 "AI provider not configured" and all ticket CRUD endpoints still work.
 
 ### FR12 — API exploration [brief §3]
 - **FR12.1** Swagger / OpenAPI UI is available in the Development environment and documents every endpoint, request and response shape, and enum values.
+
+### FR13 — MCP server [FR-11; MQ1] (added 2026-10-21)
+- **FR13.1** SupportDesk AI is exposed as a Model Context Protocol (MCP) server built with the official C# MCP SDK (`ModelContextProtocol` NuGet package), either as a separate project in the solution or as a startup mode of the API host (decided in design).
+- **FR13.2** Transport is **stdio only**: an MCP client starts the server as a local process and talks over standard input/output. No streamable HTTP transport and nothing new listening on the network. [MQ1]
+- **FR13.3** The MCP server uses the same SQLite database, configuration (including `Ai:*` settings from user secrets or environment variables) and services as the REST API. The database path resolves to the same file whatever working directory the MCP client launches the server from. The MCP server does not create or migrate the schema (the documented `dotnet ef database update` step does, as for the API); if the database has not been created, tools return a controlled error. The API and the MCP server may run at the same time on the same file; SQLite's own locking applies and last write wins (A5).
+- **FR13.4** Nothing but MCP protocol messages is written to standard output; logs go to standard error so they cannot corrupt the protocol stream.
+- **AC13.3** Given the server running over stdio with logging at Information, When tools are called (including a failing AI call), Then every line on standard output is a valid MCP JSON-RPC message.
+- **AC13.1** Given the documented start command, When an MCP client connects over stdio, Then the server completes the MCP handshake and lists exactly the eight tools of FR14.
+- **AC13.2** Given no Groq key is configured, When the MCP server starts, Then it starts normally and every non-AI tool works.
+
+### FR14 — MCP tools [FR-12; MQ3] (added 2026-10-21)
+- **FR14.1** The server exposes exactly these tools, each with a clear name, a description and typed input parameters:
+
+  | Tool | Input | Calls | Result |
+  |---|---|---|---|
+  | `create_ticket` | `title`, `description` | create (FR2) | the created ticket |
+  | `list_tickets` | optional `status`, `priority`, `category` | list (FR3) | array of tickets |
+  | `get_ticket` | `id` | get (FR4) | the ticket |
+  | `update_ticket` | `id`, `title`, `description`, `priority` | update (FR5) | the updated ticket |
+  | `update_ticket_status` | `id`, `status` | status change (FR6) | the updated ticket |
+  | `analyze_ticket` | `id` | analysis (FR7) | the analysis, previous priority and updated ticket |
+  | `draft_reply` | `id` | draft reply (FR8) | the draft with the "not sent" notice |
+  | `get_dashboard_summary` | none | dashboard (FR9) | the counts |
+
+- **FR14.2** Every tool calls the same service layer as the REST endpoint and contains no business logic of its own (no validation rules, no persistence, no AI calls duplicated in the tool).
+- **FR14.3** Results are structured JSON with the same field names and enum spellings as the REST responses (`TicketResponse`, `AnalysisResponse` with `previousPriority`, `DraftReplyResponse`, dashboard summary), as defined in contract C1 of `inception/contract-design/contract-summary.md` and already returned by the REST API.
+- **FR14.4** Failures are returned as **tool error results** (`isError: true`) with the same short, safe title and detail as the REST ProblemDetails (FR10), the matching HTTP-style `status` (400, 404, 502, 503, 504, 500) as a stable error kind, and per-field messages for validation failures: validation error, unknown ticket id, AI not configured, AI timeout, AI provider error, invalid AI output, unexpected error. They are not raised as protocol-level errors. [MQ3]
+- **AC14.1** Given an MCP client, When it calls `create_ticket` with a valid title and description, Then the ticket is saved and returned, and `GET /api/tickets/{id}` returns the same ticket.
+- **AC14.2** Given `update_ticket_status` with `status: "Done"`, Then the tool returns an error result listing the allowed values and nothing changes.
+- **AC14.3** Given `get_ticket` with an unknown id, Then the tool returns an error result naming the id.
+- **AC14.4** Given a Groq key, When the client calls `analyze_ticket` and then `draft_reply`, Then both return validated results that are saved exactly as through the REST endpoints; given an AI timeout or provider error, Then a controlled error result is returned and the ticket is unchanged.
+
+### FR15 — MCP safety and client setup [FR-13; MQ2] (added 2026-10-21)
+- **FR15.1** Tool arguments from the LLM client are untrusted input and are validated exactly as strictly as API requests (same length limits, enum names only — numbers such as `status: 1` and numeric strings such as `"1"` are rejected — and ids must be positive integers).
+- **FR15.2** `draft_reply` returns a draft only and never sends anything (FR8.3 applies to MCP too).
+- **FR15.3** No delete tool, no tool other than the eight in FR14.1, and no secrets, configuration values, stack traces, exception type names or raw provider responses in any tool result.
+- **FR15.4** The README documents how to build and start the MCP server and how to connect it to an MCP client, with a sample client configuration for Claude Code (the demo client) and for Claude Desktop, and how to inspect it with MCP Inspector. [MQ2]
+- **FR15.5** Evidence of at least one end-to-end tool call from Claude Code (screenshot or log), including `analyze_ticket` and `draft_reply`, is kept in the repository for submission. [MQ2]
+- **AC15.1** Given Claude Code configured with the sample configuration, When the person asks it to list tickets and analyze one, Then Claude Code calls `list_tickets` and `analyze_ticket` successfully and the evidence is saved.
+- **AC15.2** Given a tool result for any failure, Then it contains no stack trace, key or provider text.
 
 ## Non-Functional Requirements
 
@@ -99,16 +150,19 @@ Brief IDs (FR-01..FR-10) are kept in brackets for traceability to the source doc
 - **NFR2 — No leakage**: no secrets or stack traces in any HTTP response; secrets never logged; no secrets in the Git repository. [rules]
 - **NFR3 — AI timeout**: every AI call has a configurable timeout (default 20 seconds) and honours the request `CancellationToken`; a timeout returns 504 within timeout + 2 seconds and leaves the ticket unchanged.
 - **NFR4 — Untrusted AI output**: AI output is treated as untrusted data — never executed, never used as SQL, never allowed to set status. Ticket text sent to the AI is wrapped as data in the prompt, with instructions that the model returns JSON only. [rules]
-- **NFR5 — Data protection**: only demo / synthetic ticket text is used with the real Groq provider; the README states that real customer or personal data must not be entered. [rule: never send personal data]
+- **NFR5 — Data protection**: only demo / synthetic ticket text is used with the real Groq provider and with MCP clients (an MCP client such as Claude Code is also an external LLM service that receives ticket text in tool results); the README states that real customer or personal data must not be entered. Ticket text returned to an MCP client is data, not instructions. [rule: never send personal data; updated 2026-10-21]
 - **NFR6 — Performance (local)**: non-AI endpoints respond in under 500 ms for up to 1,000 tickets on a developer machine.
 - **NFR7 — Async I/O**: all database and HTTP calls are async and pass a `CancellationToken`.
 - **NFR8 — Maintainability**: thin controllers; business logic in services registered through DI; DTOs separate from EF entities; no extra architecture layers. [memory:team-practices]
-- **NFR9 — Testability**: automated xUnit tests cover the key business rules and all AI-output validation paths (valid, malformed JSON, invalid enum, missing field, timeout, provider error); tests never call the real AI; at least 80% line coverage on hand-written code. [memory:team-practices]
+- **NFR9 — Testability**: automated xUnit tests cover the key business rules and all AI-output validation paths (valid, malformed JSON, invalid enum, missing field, timeout, provider error); tests never call the real AI; at least 80% line coverage on hand-written code. MCP tests cover: exactly the eight tools are listed, each tool delegates to the service, failures become `isError` results without secrets or stack traces, and no delete tool exists. [memory:team-practices; MCP added 2026-10-21]
 - **NFR10 — Reproducibility**: a reviewer can clone the repo and run it by following the README (prerequisites, setup, configuration, `dotnet ef database update`, endpoint examples, known limitations). Ticket CRUD, dashboard and all automated tests work with no API key; the two AI endpoints need the reviewer's own Groq key and return 503 without it (changed 2026-10-20: no mock provider).
+- **NFR11 — MCP availability**: the MCP server starts from the documented steps, works with at least one MCP client (Claude Code), and its non-AI tools work when the AI provider is down, slow or unconfigured. AI tools use the same timeout (NFR3). [brief §8; added 2026-10-21]
+- **NFR12 — MCP safety**: MCP tool arguments are untrusted input (validated like API requests), only the eight FR14 tools are exposed, and tool results never carry secrets or stack traces. The MCP server reuses the services, so NFR2, NFR4 and the hard rules apply unchanged. [brief §7, FR-13; added 2026-10-21]
 
 ## Constraints
 
 - ASP.NET Core 8 Web API with controllers, C#, EF Core, SQLite, Swagger; .NET 8 SDK. [desc]
+- MCP server with the official C# MCP SDK (`ModelContextProtocol` NuGet package), stdio transport. [desc-v2; MQ1]
 - Local only — no cloud deployment, no CI service. [desc]
 - 5-day delivery window; GitHub submission with meaningful commits is mandatory. [desc]
 - AI provider: Groq (OpenAI-compatible API); the trainee supplies the API key locally. [FQ1]
@@ -134,6 +188,8 @@ Brief IDs (FR-01..FR-10) are kept in brackets for traceability to the source doc
 - RAG, vector databases, fine-tuning, multi-agent workflows.
 - Production deployment, monitoring, scaling, CI pipelines.
 - Ticket history/audit log and comments.
+- MCP authentication (OAuth), remote hosting of the MCP server, multi-user MCP sessions, and streamable HTTP transport. [desc-v2; MQ1]
+- MCP resources and prompts (only the eight tools are exposed).
 
 ## Open Questions
 
@@ -142,7 +198,8 @@ Brief IDs (FR-01..FR-10) are kept in brackets for traceability to the source doc
 ## Sources
 
 - `[desc]` Initial description: "Build SupportDesk AI, an ASP.NET Core 8 Web API with EF Core + SQLite, following the catalogued requirements document … Local only, no cloud deployment." and the catalogued brief `documents/supportdesk-requirements.pdf` (FR-01..FR-10, §3, §5, §7–§11).
+- `[desc-v2]` The trainer's updated brief (2026-10-21), saved as `docs/requirements.pdf` and re-catalogued as `documents/supportdesk-requirements.pdf`: adds FR-11 MCP server, FR-12 MCP tools, FR-13 MCP safety and client setup, and the matching §7, §8, §9, §10, §11 and §12 items. FR-01..FR-10 are unchanged.
 - `[scope]` Workflow-selected scope: classic, Standard depth.
-- `[Q1]`–`[Q8]`, `[FQ1]` — answers in `requirements-analysis-questions.md`.
+- `[Q1]`–`[Q8]`, `[FQ1]`, `[MQ1]`–`[MQ3]` — answers in `requirements-analysis-questions.md`.
 - `[memory:team-practices]` — `inception/practices-discovery/team-practices.md` and the affirmed rules in `aidlc/spaces/default/memory/project.md`.
 - `[assumption]` — defaults chosen by the product manager, listed under Assumptions for correction at approval.

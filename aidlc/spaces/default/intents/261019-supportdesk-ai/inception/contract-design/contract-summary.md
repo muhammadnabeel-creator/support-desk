@@ -1,8 +1,8 @@
 # Contract Summary — SupportDesk AI
 
-Sources: units and edges in `inception/units-generation/unit-of-work.md` and `unit-of-work-dependency.md` (U1 Foundation & Tickets, U2 AI Assistant, U3 Dashboard, U4 Release Kit), components in `inception/domain-design/components.md`, requirements FR1–FR12 / NFR1–NFR10 in `inception/requirements-analysis/requirements.md`, and the answers in `contract-design-questions.md`.
+Sources: units and edges in `inception/units-generation/unit-of-work.md` and `unit-of-work-dependency.md` (U1 Foundation & Tickets, U2 AI Assistant, U3 Dashboard, U4 Release Kit, U5 MCP Server), components in `inception/domain-design/components.md` (incl. McpServer, ADR-006), requirements FR1–FR15 / NFR1–NFR12 in `inception/requirements-analysis/requirements.md`, and the answers in `contract-design-questions.md`.
 
-All units live in one Web API project, so inter-unit boundaries are in-process C# contracts; the only network boundaries are the public REST API (inbound) and Groq (outbound).
+All units live in one Web API project, so inter-unit boundaries are in-process C# contracts; the only external boundaries are the public REST API (inbound HTTP), the MCP tool interface (inbound stdio, added 2026-10-21) and Groq (outbound).
 
 ## Contracts
 
@@ -12,6 +12,8 @@ All units live in one Web API project, so inter-unit boundaries are in-process C
 | C2 | U2 AiAssistant | U2 Tickets analyze/draft flows | In-process C# interface (`IAiTicketService`) + shared result types | U2 |
 | C3 | U1 shared Domain + error plumbing | U2, U3 | Shared schema: enums, typed AI exceptions, Ticket entity | U1 |
 | C4 | External: Groq API | U2 `GroqAiTicketService` | Outbound HTTPS, OpenAI-compatible chat completions | Groq (we conform; U2 owns our adapter) |
+| C5 | U5 MCP Server | External: MCP clients (Claude Code, MCP Inspector) | MCP over stdio (JSON-RPC 2.0), eight tools | U5 |
+| C6 | U1 services and registration, U3 dashboard service, U1 error mapping | U5 MCP tools and error mapper | In-process C# (same service interfaces as the controllers; shared registration and failure mapping) | U1 (U3 for the dashboard service) |
 
 ## Shared Conventions (all of C1)
 
@@ -260,9 +262,80 @@ error_mapping:
   unparseable_or_invalid_content: AiInvalidOutputException (502)
 ```
 
+## C5 — MCP tools (stdio) (added 2026-10-21)
+
+```yaml
+# Provider: U5 McpServer, started with: dotnet <repo>/src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll --mcp
+transport: stdio            # only; no HTTP transport, nothing listens on the network [MQ1]
+server: { name: supportdesk, version: "1.0" }
+conventions:
+  arguments: camelCase names; enums as names only (numbers and numeric strings rejected); ids positive integers; same limits as C1 requests
+  success: a JSON object or array in the tool result content, using exactly the C1 response schemas (Ticket, AnalysisResponse, DraftReplyResponse, DashboardSummary)
+  failure: tool result with isError true; content is a JSON object { status, title, detail, errors? } with the same status, title and detail as the C1 ProblemDetails for that failure; never stack traces, exception types, keys, configuration values or provider text [MQ3]
+tools:
+  - name: create_ticket
+    input: { title: "string, required", description: "string, required" }
+    result: Ticket                       # same as POST /api/tickets (201 body)
+    errors: [400]
+  - name: list_tickets
+    input: { status: "Status, optional", priority: "Priority, optional", category: "Category, optional" }
+    result: "Ticket[] (newest createdAt first)"   # same as GET /api/tickets
+    errors: [400]
+  - name: get_ticket
+    input: { id: "integer >= 1, required" }
+    result: Ticket
+    errors: [400, 404]
+  - name: update_ticket
+    input: { id: "integer >= 1", title: string, description: string, priority: Priority }   # all required
+    result: Ticket                       # same as PUT /api/tickets/{id}
+    errors: [400, 404]
+  - name: update_ticket_status
+    input: { id: "integer >= 1", status: "Status, required" }
+    result: Ticket                       # same as PATCH /api/tickets/{id}/status
+    errors: [400, 404]
+  - name: analyze_ticket
+    input: { id: "integer >= 1" }
+    result: AnalysisResponse             # same as POST /api/tickets/{id}/analyze; saves and overwrites priority
+    errors: [400, 404, 502, 503, 504]
+  - name: draft_reply
+    input: { id: "integer >= 1" }
+    result: DraftReplyResponse           # notice "Draft — requires human review; not sent"; nothing is sent
+    errors: [400, 404, 502, 503, 504]
+  - name: get_dashboard_summary
+    input: {}
+    result: DashboardSummary             # same as GET /api/dashboard/summary
+    errors: []
+  # any tool may also return 500: detail "The server could not complete the request." (the REST text without the traceId sentence; the full error is logged to stderr only)
+  # a missing or unmigrated database is an unexpected failure (500) with the same generic detail; the README says to run dotnet ef database update first
+  # client cancellation of a tool call: the call is abandoned, nothing is saved (no partial writes), no result is returned
+excluded: [delete, any tool not listed above, MCP resources, MCP prompts]
+output_channels: { stdout: "MCP messages only", stderr: "logs (never key, ticket text or AI text)" }
+```
+
+## C6 — Services shared by REST and MCP (in-process) (added 2026-10-21)
+
+```yaml
+# The MCP tools call exactly the methods the controllers call; no logic is duplicated (FR14.2)
+registration: one extension method (e.g. AddSupportDeskServices) used by the web host and the --mcp host
+  registers: [SupportDeskDbContext, IClock, ITicketService, AiOptions + typed HttpClient for IAiTicketService, IDashboardService]
+services:
+  - ITicketService: [CreateAsync, ListAsync, GetAsync, UpdateAsync, ChangeStatusAsync, AnalyzeAsync, DraftReplyAsync]   # U1 + U2
+  - IDashboardService: [GetSummaryAsync]                                                                                  # U3
+failure_mapping: one shared method maps an exception to (status, title, detail, errors?) as in C3 and the C1 conventions;
+  used by GlobalExceptionHandler (REST, unchanged behaviour) and by the MCP error mapper (C5)
+id_validation: the "positive integer" id rule moves from TicketsController's private helper into one shared static check used by the controller and every id-taking tool (400 naming id; REST behaviour unchanged)
+argument_binding: tools declare primitive parameters (int id, string title/description, string status/priority/category) so the SDK can always bind them;
+  enum strings are parsed with the shared StrictEnum rules (names only, case-insensitive, numbers and numeric strings rejected) inside the tool's mapping step;
+  any argument the SDK cannot bind (wrong JSON type, missing required argument) is caught by the MCP error mapper and returned as an isError 400 result, never a protocol error
+response_shapes: tools build results with the same factories the controllers use (TicketResponse.FromTicket, AnalysisResponse.FromOutcome, DraftReplyResponse.FromTicket, the dashboard response) and serialize them with the same JSON options as the web host (camelCase, enum names, UTC "Z" timestamps), shared from one place; a test checks a REST response and the matching tool result are equal
+scope: one DI scope (one DbContext) per HTTP request and per MCP tool call
+```
+
 ## Contract Ownership Rules
 
 - U1 owns the shared conventions (enums, ProblemDetails, error codes, Ticket shape) and the shared schema C3. Each unit owns the paths it provides in C1.
+- U5 owns C5 (tool names, argument names, result and error shapes). C5 reuses C1 schemas, so a C1 change is a C5 change too.
+- U1 owns C6's registration method and failure mapping; U3 owns `IDashboardService`.
 - U2 owns C2 and the Groq adapter for C4; Groq owns C4 itself, so if Groq changes, only `GroqAiTicketService` changes.
 - Breaking changes (renaming/removing a field, changing a type or status code) need an updated contract summary approved before code changes. Additive changes (new optional response fields) are safe: consumers ignore unknown fields.
 - The OpenAPI document generated by Swagger at runtime must match C1; U4 checks this during the clean-clone release gate.
@@ -271,4 +344,5 @@ error_mapping:
 
 | Contract | Question | Blocks |
 |---|---|---|
-| C4 | Default Groq model name (configuration, documented in README) | U2 (configuration default only) |
+| C4 | (Resolved 2026-10-20) Default Groq model is `openai/gpt-oss-120b`; `llama-3.3-70b-versatile` was retired by Groq. Configurable via `Ai:Groq:Model`. | — |
+| C5 | `IDashboardService.GetSummaryAsync` is the planned name (C6); if U3 Functional Design renames it, C6 is updated with it. | — |

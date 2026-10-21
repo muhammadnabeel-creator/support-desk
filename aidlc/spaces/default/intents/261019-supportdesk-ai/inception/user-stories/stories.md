@@ -1,6 +1,6 @@
 # User Stories — SupportDesk AI
 
-Source: `inception/requirements-analysis/requirements.md` (FR1–FR12, NFR1–NFR10), personas in `personas.md`, plan answers in `user-stories-questions.md`. Testing posture (test-after, xUnit, fakes for the AI) from `inception/practices-discovery/team-practices.md`: every acceptance criterion below is written so it can become an automated test that never calls a real AI.
+Source: `inception/requirements-analysis/requirements.md` (FR1–FR15, NFR1–NFR12; FR13–FR15 and NFR11–NFR12 added by the MCP change request of 2026-10-21), personas in `personas.md`, plan answers in `user-stories-questions.md`. Testing posture (test-after, xUnit, fakes for the AI) from `inception/practices-discovery/team-practices.md`: every acceptance criterion below is written so it can become an automated test that never calls a real AI.
 
 Priorities use MoSCoW. The MVP line is decided in Delivery Planning.
 
@@ -12,6 +12,7 @@ Priorities use MoSCoW. The MVP line is decided in Delivery Planning.
 | 2 AI Assistance | US2.1 Analyze, US2.2 Reject bad AI output, US2.3 Survive AI outages, US2.4 Draft reply, US2.5 Connect Groq | — | Sending replies (email, chat, webhooks); automatic AI retries |
 | 3 Dashboard | US3.1 Summary counts | — | Charts or trends over time |
 | 4 Reliability & Setup | US4.1 Consistent safe errors, US4.2 Run from a clean clone (release gate), US4.4 Secrets stay out of Git | US4.3 Example requests | Authentication; frontend UI; CI pipeline |
+| 5 MCP Access (added 2026-10-21) | US5.1 Connect an MCP client, US5.2 Manage tickets through tools, US5.3 AI through tools, US5.4 Safe tool use, US5.5 MCP setup and evidence | — | MCP over HTTP; MCP authentication; remote hosting; delete tool; MCP resources and prompts |
 
 No story is Could Have: the brief's scope is small enough that everything in it is either needed (Must/Should) or explicitly excluded (Won't).
 
@@ -153,7 +154,7 @@ No story is Could Have: the brief's scope is small enough that everything in it 
 - **Type**: release-gate acceptance story. Unlike the feature stories above, it is not built on its own: it is the final check run once, before submission, over the finished project (the clean-clone check in team practices).
 - **Traces**: NFR10, FR12, FR1
 - **AC4.2.1** Given a fresh clone and the .NET 8 SDK, When Riley follows the README (restore, `dotnet ef database update`, `dotnet run`), Then the API starts (AI endpoints need Riley's own Groq key, set as the README shows) and Swagger UI lists every endpoint with request and response shapes and enum values.
-- **AC4.2.2** Given the README, When Riley reads it, Then it covers prerequisites, setup, configuration, database steps, endpoint examples and known limitations.
+- **AC4.2.2** Given the README, When Riley reads it, Then it covers prerequisites, setup, configuration, database steps, endpoint examples, MCP server setup with a sample client configuration, and known limitations.
 - **AC4.2.4** Given a fresh clone, When Riley runs `dotnet test`, Then all tests pass without network access or an AI key.
 - **Dependencies**: runs after all Must Have stories are built. Persistence across restarts is covered by AC1.1.4.
 
@@ -173,6 +174,65 @@ No story is Could Have: the brief's scope is small enough that everything in it 
 - **AC4.4.2** Given the README, When Riley reads the configuration section, Then it shows how to set the Groq key with `dotnet user-secrets` or an environment variable.
 - **AC4.4.3** Given `.gitignore`, When Riley inspects it, Then `bin/`, `obj/`, the SQLite database file and `.env` are excluded.
 - **Dependencies**: none. **INVEST**: small; manual check.
+
+## 5. MCP Access (added 2026-10-21)
+
+These stories come from the trainer's updated brief (FR-11 to FR-13). Sam uses an MCP client (Claude Code, MQ2) that calls SupportDesk tools on Sam's behalf; every tool goes through the same services as the REST API, so the rules of groups 1–4 apply unchanged.
+
+### US5.1 — Connect an MCP client to SupportDesk
+**As** Sam, **I want** to connect my MCP client to SupportDesk over stdio, **so that** I can work on tickets by asking my AI assistant instead of using Swagger.
+- **Priority**: Must Have
+- **Traces**: FR13, NFR11
+- **AC5.1.1** Given the documented start command in the client configuration, When the MCP client connects, Then the handshake completes and the client lists exactly eight tools: `create_ticket`, `list_tickets`, `get_ticket`, `update_ticket`, `update_ticket_status`, `analyze_ticket`, `draft_reply`, `get_dashboard_summary`, each with a description and typed parameters.
+- **AC5.1.2** Given no Groq key is configured, When the server starts, Then it starts normally and the six non-AI tools work.
+- **AC5.1.3** Given the client starts the server from a different working directory, When a tool reads tickets, Then it uses the same database file as the API.
+- **AC5.1.4** Given tools are called (including a failing AI call), When the client reads standard output, Then every line is a valid MCP message; logs appear only on standard error.
+- **AC5.1.5** Given the database has not been created yet (no `dotnet ef database update`), When the client calls any ticket tool, Then an error result with status 500 and a generic message is returned (no stack trace), and the server keeps running; the README states the database step comes first.
+- **AC5.1.6** Given the API and the MCP server run at the same time on the same database, When a ticket is created through one, Then the other returns it; concurrent edits are last-write-wins (A5).
+- **AC5.1.7** Given the running MCP server, When open network ports are checked, Then the server listens on none (stdio only, FR13.2), and the server project references the official `ModelContextProtocol` package (FR13.1).
+- **Dependencies**: U1 services (and U3 for the dashboard tool). **INVEST**: testable by starting the server in-process and listing tools.
+
+### US5.2 — Manage tickets through MCP tools
+**As** Sam, **I want** my MCP client to create, list, view, edit and change the status of tickets and read the dashboard, **so that** I can do routine ticket work in conversation.
+- **Priority**: Must Have
+- **Traces**: FR14
+- **AC5.2.1** Given a valid title and description, When the client calls `create_ticket`, Then the ticket is saved with status Open and priority Medium and returned as structured JSON with the same fields as the REST response; `GET /api/tickets/{id}` returns the same ticket.
+- **AC5.2.2** Given tickets exist, When the client calls `list_tickets` with `status: "Open"`, Then only Open tickets are returned, newest first.
+- **AC5.2.3** Given an existing id, When the client calls `update_ticket` or `update_ticket_status`, Then the change is saved exactly as through PUT or PATCH.
+- **AC5.2.4** Given tickets exist, When the client calls `get_dashboard_summary`, Then the counts equal `GET /api/dashboard/summary`.
+- **AC5.2.5** Given each tool, When its code is reviewed and tested with a fake service, Then the tool only maps arguments to one service call and the result (or failure) to a tool result: no validation rules, database access or AI calls of its own (FR14.2).
+- **Dependencies**: US5.1. **INVEST**: each tool testable against the service with SQLite in-memory.
+
+### US5.3 — Use the AI assistant through MCP tools
+**As** Sam, **I want** my MCP client to analyze a ticket and draft a reply, **so that** I get triage and a draft without leaving the conversation.
+- **Priority**: Must Have
+- **Traces**: FR14, FR15.2
+- **AC5.3.1** Given an AI that returns a valid analysis (the hand-written fake in automated tests; Groq with Sam's key in the manual demo) and an existing ticket, When the client calls `analyze_ticket`, Then the validated analysis, `previousPriority` and updated ticket are returned and saved exactly as `POST /api/tickets/{id}/analyze` would.
+- **AC5.3.2** Given an existing ticket, When the client calls `draft_reply`, Then the draft is returned with the notice "Draft — requires human review; not sent" and nothing is sent anywhere.
+- **AC5.3.3** Given the AI times out, fails or returns invalid output, When the client calls either AI tool, Then an error result (`isError: true`) with status 504 or 502 is returned within the AI timeout + 2 seconds and the ticket is unchanged; given no key, the status is 503.
+- **AC5.3.4** Given the AI is down or slow, When the client calls any of the six non-AI tools, Then they succeed normally (NFR11).
+- **Dependencies**: US5.1; U2. **INVEST**: testable with the hand-written AI fake.
+
+### US5.4 — Safe tool use
+**As** Riley, **I want** MCP tool input to be validated as strictly as API input and failures to come back as safe error results, **so that** an LLM client cannot bypass the rules or see internals.
+- **Priority**: Must Have
+- **Traces**: FR14.4, FR15.1, FR15.3, NFR12
+- **AC5.4.1** Given `update_ticket_status` with `status: "Done"`, `status: 1` or `status: "1"`, When it is called, Then an error result with status 400 lists the allowed values and nothing changes. The same applies to `priority` in `update_ticket` and to the `status`, `priority` and `category` filters of `list_tickets`.
+- **AC5.4.2** Given `create_ticket` or `update_ticket` with a 201-character title, a whitespace-only description or a 4001-character description, Then an error result with status 400 names the field and its limit, and nothing is saved.
+- **AC5.4.3** Given `get_ticket` with an unknown id, Then an error result with status 404 names the id; given `id: 0` or a negative id, Then an error result with status 400 names `id` (the same rule as the REST API's id check).
+- **AC5.4.4** Given any failing tool call, Then the result contains no stack trace, exception type, key, configuration value or provider text.
+- **AC5.4.6** Given a tool hits an unexpected exception, When it returns, Then the result is an error with status 500 and the generic REST message, and the server keeps serving later calls.
+- **AC5.4.5** Given the tool list, Then there is no delete tool and no tool beyond the eight in FR14.1.
+- **Dependencies**: US5.1. **INVEST**: testable.
+
+### US5.5 — Set up the MCP server and keep evidence
+**As** Riley, **I want** the README to show how to start the MCP server and connect a client, and the repository to hold evidence of real tool calls, **so that** I can repeat the demo and check the submission.
+- **Priority**: Must Have
+- **Type**: documentation and evidence story, delivered with the release kit.
+- **Traces**: FR15.4, FR15.5, NFR11, NFR5
+- **AC5.5.1** Given the README, When Riley reads the MCP section, Then it shows how to build and start the server, a sample configuration for Claude Code and for Claude Desktop, how to inspect it with MCP Inspector, and that only synthetic data may be used.
+- **AC5.5.2** Given the repository, When Riley opens `docs/mcp-evidence/`, Then it holds a screenshot or log of Claude Code calling `list_tickets`, `analyze_ticket` and `draft_reply` successfully.
+- **Dependencies**: US5.1–US5.4 built. **INVEST**: small; manual check.
 
 ## Coverage Notes
 
