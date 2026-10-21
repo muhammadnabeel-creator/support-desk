@@ -2,7 +2,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using SupportDesk.Api.Ai;
 using SupportDesk.Api.Errors;
 using SupportDesk.Api.Infrastructure;
 using SupportDesk.Api.Tickets;
@@ -65,6 +67,33 @@ builder.Services.AddDbContext<SupportDeskDbContext>((services, options) =>
 });
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ITicketService, TicketService>();
+
+// AI settings (WF9, NFR3.10, NFR4.3). A bad endpoint, model or timeout stops startup with a message naming the
+// key. The API key is deliberately not validated: without it the app still starts, ticket operations work, and
+// the AI endpoints answer 503 per request (BR10.1, NFR1.3).
+builder.Services.AddOptions<AiOptions>()
+    .BindConfiguration(AiOptions.SectionName)
+    .Validate(
+        options => Uri.TryCreate(options.Groq.BaseUrl, UriKind.Absolute, out var baseUri)
+            && baseUri.Scheme == Uri.UriSchemeHttps,
+        "Ai:Groq:BaseUrl must be an absolute https URL.")
+    .Validate(
+        options => !string.IsNullOrWhiteSpace(options.Groq.Model),
+        "Ai:Groq:Model must not be empty.")
+    .Validate(
+        options => options.TimeoutSeconds is >= AiOptions.MinTimeoutSeconds and <= AiOptions.MaxTimeoutSeconds,
+        $"Ai:TimeoutSeconds must be between {AiOptions.MinTimeoutSeconds} and {AiOptions.MaxTimeoutSeconds}.")
+    .ValidateOnStart();
+
+// Groq through a typed, pooled HttpClient (NFR3.3). The base address keeps its "/openai/v1" path thanks to the
+// trailing slash; the client's own timeout is off because GroqAiTicketService applies Ai:TimeoutSeconds per call.
+// No retry handler is added (BR10.4).
+builder.Services.AddHttpClient<IAiTicketService, GroqAiTicketService>((services, client) =>
+{
+    var aiOptions = services.GetRequiredService<IOptions<AiOptions>>().Value;
+    client.BaseAddress = GroqAiTicketService.CreateBaseAddress(aiOptions.Groq.BaseUrl);
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
 
 // Errors: one exception handler turns every failure into ProblemDetails with a traceId (BR6.1-BR6.4).
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = ProblemDetailsCustomizer.Customize);
