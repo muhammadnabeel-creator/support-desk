@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace SupportDesk.Api.Errors;
 
 /// <summary>
-/// The one place that turns exceptions into ProblemDetails responses (BR6.1, BR6.2, BR6.4, ADR-005).
+/// The one place that writes exceptions as ProblemDetails HTTP responses (BR6.1, BR6.2, BR6.4, ADR-005); the
+/// status, title and detail come from <see cref="ProblemMapping"/>, which the MCP tools share.
 /// Typed failures map to fixed status codes: validation 400, ticket not found 404, invalid AI output 502,
 /// AI provider error 502, AI not configured 503, AI timeout 504. Anything else becomes a generic 500 that
 /// never carries a stack trace, exception type or exception message, and is logged once at Error with the
@@ -14,10 +15,10 @@ namespace SupportDesk.Api.Errors;
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     /// <summary>The ProblemDetails title of every validation (400) response.</summary>
-    public const string ValidationTitle = "One or more validation errors occurred.";
+    public const string ValidationTitle = ProblemMapping.ValidationTitle;
 
     /// <summary>The ProblemDetails detail of every validation (400) response.</summary>
-    public const string ValidationDetail = "See the errors property for the fields that failed validation.";
+    public const string ValidationDetail = ProblemMapping.ValidationDetail;
 
     private const string ProblemJsonContentType = "application/problem+json";
 
@@ -49,7 +50,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             return true;
         }
 
-        var problem = CreateProblemDetails(exception);
+        var problem = ProblemMapping.Create(exception);
         LogFailure(exception, problem.Status!.Value, traceId);
 
         httpContext.Response.StatusCode = problem.Status.Value;
@@ -73,48 +74,6 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
 
         return true;
     }
-
-    private static ProblemDetails CreateProblemDetails(Exception exception) => exception switch
-    {
-        ValidationFailedException validation => new HttpValidationProblemDetails(
-            new Dictionary<string, string[]>(validation.Errors))
-        {
-            Status = StatusCodes.Status400BadRequest,
-            Title = ValidationTitle,
-            Detail = ValidationDetail,
-        },
-        TicketNotFoundException notFound => Problem(
-            StatusCodes.Status404NotFound,
-            "Ticket not found.",
-            $"Ticket {notFound.TicketId} was not found."),
-        AiInvalidOutputException => Problem(
-            StatusCodes.Status502BadGateway,
-            "The AI response was invalid.",
-            "The AI provider returned output that could not be validated. Nothing was saved."),
-        AiProviderException => Problem(
-            StatusCodes.Status502BadGateway,
-            "The AI provider failed.",
-            "The AI provider could not be reached or returned an error. Try again later."),
-        AiNotConfiguredException => Problem(
-            StatusCodes.Status503ServiceUnavailable,
-            "AI features are not configured.",
-            "The AI provider is not configured on this server. Ticket operations still work."),
-        AiTimeoutException => Problem(
-            StatusCodes.Status504GatewayTimeout,
-            "The AI provider timed out.",
-            "The AI provider did not respond in time. Nothing was saved. Try again later."),
-        BadHttpRequestException badRequest => Problem(
-            badRequest.StatusCode,
-            "The request could not be read.",
-            "The request was malformed or could not be processed."),
-        _ => Problem(
-            StatusCodes.Status500InternalServerError,
-            "An unexpected error occurred.",
-            "The server could not complete the request. Quote the traceId when reporting this problem."),
-    };
-
-    private static ProblemDetails Problem(int status, string title, string detail) =>
-        new() { Status = status, Title = title, Detail = detail };
 
     private void LogFailure(Exception exception, int statusCode, string traceId)
     {
