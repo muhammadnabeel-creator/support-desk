@@ -1,14 +1,15 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
-using SupportDesk.Api.Ai;
-using SupportDesk.Api.Dashboard;
 using SupportDesk.Api.Errors;
 using SupportDesk.Api.Infrastructure;
-using SupportDesk.Api.Tickets;
+using SupportDesk.Api.Mcp;
+
+// `--mcp` runs the same services as an MCP server over stdio instead of the web API (FR13, ADR-006).
+if (args.Contains(McpServerHost.Switch))
+{
+    await McpServerHost.RunAsync(args);
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,14 +21,8 @@ builder.Services
     })
     .AddJsonOptions(options =>
     {
-        var json = options.JsonSerializerOptions;
-        json.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-
-        // Enums travel as names only (contract C1). The strict converter comes first and wins: it also
-        // rejects numeric strings ("1") and combinations ("Open,Closed"), which the built-in converter
-        // would accept. The built-in one, with integers disabled, stays as the documented default.
-        json.Converters.Add(new StrictEnumConverterFactory());
-        json.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
+        // camelCase names and strict enum names (contract C1); shared with the MCP tools.
+        JsonDefaults.Apply(options.JsonSerializerOptions);
 
         // Parser messages (with CLR type names and byte positions) never reach the client.
         options.AllowInputFormatterExceptionMessages = false;
@@ -55,47 +50,9 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<ApiParameterSchemaFilter>();
 });
 
-// SQLite through EF Core. The relative Data Source is resolved under the content root when the
-// context is first created; the schema comes only from migrations (no Migrate/EnsureCreated here).
-builder.Services.AddDbContext<SupportDeskDbContext>((services, options) =>
-{
-    var configuration = services.GetRequiredService<IConfiguration>();
-    var environment = services.GetRequiredService<IHostEnvironment>();
-    var connectionString = DatabasePath.ResolveConnectionString(
-        configuration.GetConnectionString("SupportDesk"),
-        environment.ContentRootPath);
-    options.UseSqlite(connectionString);
-});
-builder.Services.AddSingleton<IClock, SystemClock>();
-builder.Services.AddScoped<ITicketService, TicketService>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-
-// AI settings (WF9, NFR3.10, NFR4.3). A bad endpoint, model or timeout stops startup with a message naming the
-// key. The API key is deliberately not validated: without it the app still starts, ticket operations work, and
-// the AI endpoints answer 503 per request (BR10.1, NFR1.3).
-builder.Services.AddOptions<AiOptions>()
-    .BindConfiguration(AiOptions.SectionName)
-    .Validate(
-        options => Uri.TryCreate(options.Groq.BaseUrl, UriKind.Absolute, out var baseUri)
-            && baseUri.Scheme == Uri.UriSchemeHttps,
-        "Ai:Groq:BaseUrl must be an absolute https URL.")
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(options.Groq.Model),
-        "Ai:Groq:Model must not be empty.")
-    .Validate(
-        options => options.TimeoutSeconds is >= AiOptions.MinTimeoutSeconds and <= AiOptions.MaxTimeoutSeconds,
-        $"Ai:TimeoutSeconds must be between {AiOptions.MinTimeoutSeconds} and {AiOptions.MaxTimeoutSeconds}.")
-    .ValidateOnStart();
-
-// Groq through a typed, pooled HttpClient (NFR3.3). The base address keeps its "/openai/v1" path thanks to the
-// trailing slash; the client's own timeout is off because GroqAiTicketService applies Ai:TimeoutSeconds per call.
-// No retry handler is added (BR10.4).
-builder.Services.AddHttpClient<IAiTicketService, GroqAiTicketService>((services, client) =>
-{
-    var aiOptions = services.GetRequiredService<IOptions<AiOptions>>().Value;
-    client.BaseAddress = GroqAiTicketService.CreateBaseAddress(aiOptions.Groq.BaseUrl);
-    client.Timeout = Timeout.InfiniteTimeSpan;
-});
+// Database, clock, ticket and dashboard services, and the validated AI settings with the Groq client. Shared
+// with the --mcp host so REST controllers and MCP tools use the same implementations (ADR-006, contract C6).
+builder.Services.AddSupportDeskServices();
 
 // Errors: one exception handler turns every failure into ProblemDetails with a traceId (BR6.1-BR6.4).
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = ProblemDetailsCustomizer.Customize);

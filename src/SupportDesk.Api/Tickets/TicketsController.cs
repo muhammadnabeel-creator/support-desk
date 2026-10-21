@@ -76,9 +76,9 @@ public sealed class TicketsController : ControllerBase
     {
         var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
         var filter = new TicketListFilter(
-            ParseFilter<TicketStatus>(status, nameof(status), errors),
-            ParseFilter<TicketPriority>(priority, nameof(priority), errors),
-            ParseFilter<TicketCategory>(category, nameof(category), errors));
+            TicketInputParsing.ParseOptionalEnum<TicketStatus>(status, nameof(status), errors),
+            TicketInputParsing.ParseOptionalEnum<TicketPriority>(priority, nameof(priority), errors),
+            TicketInputParsing.ParseOptionalEnum<TicketCategory>(category, nameof(category), errors));
         if (errors.Count > 0)
         {
             throw new ValidationFailedException(errors);
@@ -101,7 +101,7 @@ public sealed class TicketsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, ProblemJson)]
     public async Task<ActionResult<TicketResponse>> GetAsync(string id, CancellationToken cancellationToken)
     {
-        var ticket = await _tickets.GetAsync(ParseId(id), cancellationToken);
+        var ticket = await _tickets.GetAsync(TicketInputParsing.ParseId(id), cancellationToken);
         return Ok(TicketResponse.FromTicket(ticket));
     }
 
@@ -126,7 +126,7 @@ public sealed class TicketsController : ControllerBase
         [FromBody] UpdateTicketRequest request,
         CancellationToken cancellationToken)
     {
-        var ticketId = ParseId(id);
+        var ticketId = TicketInputParsing.ParseId(id);
         var ticket = await _tickets.UpdateAsync(
             ticketId,
             new UpdateTicketInput(request.Title, request.Description, request.Priority),
@@ -152,7 +152,7 @@ public sealed class TicketsController : ControllerBase
         [FromBody] UpdateStatusRequest request,
         CancellationToken cancellationToken)
     {
-        var ticketId = ParseId(id);
+        var ticketId = TicketInputParsing.ParseId(id);
         var ticket = await _tickets.ChangeStatusAsync(ticketId, request.Status, cancellationToken);
         return Ok(TicketResponse.FromTicket(ticket));
     }
@@ -184,7 +184,7 @@ public sealed class TicketsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status504GatewayTimeout, ProblemJson)]
     public async Task<ActionResult<AnalysisResponse>> AnalyzeAsync(string id, CancellationToken cancellationToken)
     {
-        var outcome = await _tickets.AnalyzeAsync(ParseId(id), cancellationToken);
+        var outcome = await _tickets.AnalyzeAsync(TicketInputParsing.ParseId(id), cancellationToken);
         return Ok(AnalysisResponse.FromOutcome(outcome));
     }
 
@@ -215,44 +215,7 @@ public sealed class TicketsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status504GatewayTimeout, ProblemJson)]
     public async Task<ActionResult<DraftReplyResponse>> DraftReplyAsync(string id, CancellationToken cancellationToken)
     {
-        var ticket = await _tickets.DraftReplyAsync(ParseId(id), cancellationToken);
+        var ticket = await _tickets.DraftReplyAsync(TicketInputParsing.ParseId(id), cancellationToken);
         return Ok(DraftReplyResponse.FromTicket(ticket));
-    }
-
-    /// <summary>
-    /// Parses the <c>{id}</c> route value. The route has no <c>:int</c> constraint on purpose, so that
-    /// <c>abc</c>, <c>0</c> or <c>-1</c> give 400 naming <c>id</c> instead of a routing 404 (BR3.2).
-    /// Only plain digits are accepted (no sign, spaces or decimal point).
-    /// </summary>
-    private static int ParseId(string id)
-    {
-        if (int.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var value) && value >= 1)
-        {
-            return value;
-        }
-
-        throw new ValidationFailedException("id", "Id must be a positive whole number.");
-    }
-
-    /// <summary>
-    /// Parses an optional query filter by enum name, ignoring case (BR2.2). Empty or whitespace means
-    /// "no filter"; numbers and unknown names are recorded as an error listing the allowed values (BR2.3).
-    /// </summary>
-    private static TEnum? ParseFilter<TEnum>(string? value, string field, IDictionary<string, string[]> errors)
-        where TEnum : struct, Enum
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        if (StrictEnum.TryParse<TEnum>(value.Trim(), out var parsed))
-        {
-            return parsed;
-        }
-
-        var label = char.ToUpperInvariant(field[0]) + field[1..];
-        errors[field] = [$"{label} is not valid. Allowed values: {StrictEnum.AllowedValues<TEnum>()}."];
-        return null;
     }
 }
