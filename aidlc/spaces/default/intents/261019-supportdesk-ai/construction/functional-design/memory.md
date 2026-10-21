@@ -7,6 +7,7 @@
 
 ## Deviations
 <!-- example: 2026-05-29T10:14:32Z — skipped the optional caching layer the stage prose suggested; the dataset is small enough that it adds risk -->
+- 2026-10-20T12:45:00Z [unit u2-ai-assistant] — Removed the mock AI provider at the person's request ("lets go with groq no mock ai", confirmed); updated FR11, NFR10, US2.5, AC4.2.1 and contract C2 so earlier artifacts match. The reviewer now needs a Groq key for the two AI endpoints; tests still use hand-written fakes.
 
 ## Tradeoffs
 <!-- example: 2026-05-29T10:14:32Z — picked TDD over BDD this run; the team is unit-first and the domain is well-understood -->

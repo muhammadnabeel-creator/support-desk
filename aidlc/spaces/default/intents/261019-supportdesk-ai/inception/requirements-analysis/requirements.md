@@ -84,10 +84,10 @@ Brief IDs (FR-01..FR-10) are kept in brackets for traceability to the source doc
 - **AC10.1** Given an unhandled exception, Then the client receives a 500 ProblemDetails with a generic message and no stack trace.
 
 ### FR11 — AI provider and configuration [FR-10; FQ1]
-- **FR11.1** AI access goes through an `IAiTicketService` interface with two implementations: `MockAiTicketService` (clearly labelled mock, deterministic, no network) and `GroqAiTicketService` (Groq's OpenAI-compatible chat completions API, `https://api.groq.com/openai/v1`). [FQ1]
-- **FR11.2** The active implementation is selected by configuration (`Ai:Provider` = `Mock` or `Groq`). Default when not set: `Mock`.
-- **FR11.3** Groq settings: `Ai:Groq:ApiKey` (from `dotnet user-secrets` or environment variable only), `Ai:Groq:Model`, `Ai:Groq:BaseUrl`, `Ai:TimeoutSeconds`. Committed `appsettings.json` and `.env.example` hold placeholders only.
-- **FR11.4** Responses from the mock are visibly marked (e.g. summary prefixed `[MOCK]`) so a demo can never be mistaken for real AI output.
+- **FR11.1** AI access goes through an `IAiTicketService` interface with one production implementation: `GroqAiTicketService` (Groq's OpenAI-compatible chat completions API, `https://api.groq.com/openai/v1`). The interface stays so tests can use hand-written fakes and the provider can be replaced. [FQ1; changed 2026-10-20: no mock provider, per the person's decision in U2 functional design]
+- **FR11.2** There is no mock provider and no provider switch; Groq is always used for the AI endpoints.
+- **FR11.3** Groq settings: `Ai:Groq:ApiKey` (from `dotnet user-secrets` or environment variable only), `Ai:Groq:Model` (default `openai/gpt-oss-120b`), `Ai:Groq:BaseUrl`, `Ai:TimeoutSeconds`. Committed `appsettings.json` and `.env.example` hold placeholders only.
+- **FR11.4** (withdrawn 2026-10-20 with the mock provider.)
 - **AC11.1** Given `Ai:Provider = Groq` and no API key, Then AI endpoints return 503 "AI provider not configured" and all ticket CRUD endpoints still work.
 
 ### FR12 — API exploration [brief §3]
@@ -104,7 +104,7 @@ Brief IDs (FR-01..FR-10) are kept in brackets for traceability to the source doc
 - **NFR7 — Async I/O**: all database and HTTP calls are async and pass a `CancellationToken`.
 - **NFR8 — Maintainability**: thin controllers; business logic in services registered through DI; DTOs separate from EF entities; no extra architecture layers. [memory:team-practices]
 - **NFR9 — Testability**: automated xUnit tests cover the key business rules and all AI-output validation paths (valid, malformed JSON, invalid enum, missing field, timeout, provider error); tests never call the real AI; at least 80% line coverage on hand-written code. [memory:team-practices]
-- **NFR10 — Reproducibility**: a reviewer can clone the repo and run it by following the README (prerequisites, setup, configuration, `dotnet ef database update`, endpoint examples, known limitations) with the mock provider and no API key.
+- **NFR10 — Reproducibility**: a reviewer can clone the repo and run it by following the README (prerequisites, setup, configuration, `dotnet ef database update`, endpoint examples, known limitations). Ticket CRUD, dashboard and all automated tests work with no API key; the two AI endpoints need the reviewer's own Groq key and return 503 without it (changed 2026-10-20: no mock provider).
 
 ## Constraints
 

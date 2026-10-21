@@ -1,0 +1,26 @@
+## Review
+
+**Verdict:** READY
+**Reviewer:** aidlc-architecture-reviewer-agent
+**Date:** 2026-10-20T00:00:00Z
+**Iteration:** 1
+
+### Findings
+
+| ID | Severity | Location | Finding | Required action | Status |
+|---|---|---|---|---|---|
+| R-01 | Major | aidlc/spaces/default/intents/261019-supportdesk-ai/construction/u2-ai-assistant/nfr-design/performance-design.md > NFR3.4 row; traceability.json > NFR3.4 | NFR3.4 asks for `max_tokens` about 600 (analysis) and about 900 (draft), with drafts kept under about 2,500 characters. The design uses 400 and 700 and a 2,000-character instruction. The change is not mentioned, and traceability.json marks NFR3.4 as OK. A 400-token cap has to fit category, priority, sentiment, a summary and a suggested action as JSON. If the model hits the cap, `finish_reason = "length"` is treated as invalid output, so analysis could fail with 502 on ordinary tickets. | Either use the required values (about 600 and about 900 tokens, about 2,500 characters), or keep the lower numbers and record the deviation and its rationale. If kept, show that 400 tokens is enough for the longest allowed summary and suggested action under the BR8.3 length limits. Update the NFR3.4 traceability target to match. | New |
+| R-02 | Major | aidlc/spaces/default/intents/261019-supportdesk-ai/construction/u2-ai-assistant/nfr-design/reliability-design.md > Failure Classification pseudocode | NFR3.8 says failures are classified exactly once. The pseudocode wraps only `SendAsync` in a try block. The performance design also reads the body with `ReadAsStreamAsync`. A timeout or cancellation while the body is being read, an `IOException` during the read, and a `JsonException` on the response envelope are not mapped. They would reach `GlobalExceptionHandler` as unclassified exceptions. The handler turns those into a generic 500 and logs them with `LogError(exception, ...)`, which also puts the exception object in the log (NFR2.15/NFR2.16). The pseudocode also shows only `HttpRequestException` for network errors, so it does not say whether the timeout `catch` covers the body read. | Extend the classification so the body read and the envelope parse are inside the same try block. Map `JsonException` and `IOException` to `AiProviderException` (envelope malformed) or `AiInvalidOutputException` (content malformed). Make sure the timeout and client-gone `catch` clauses also cover the body read. Alternatively, use `ResponseContentRead` inside the single `SendAsync` try block and say so. | New |
+| R-03 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/construction/u2-ai-assistant/nfr-design/performance-design.md > NFR3.3 row | `BaseUrl` defaults to `https://api.groq.com/openai/v1` with no trailing slash, and the design posts to `{BaseUrl}/chat/completions`. Setting `HttpClient.BaseAddress` to that value and sending the relative URI `chat/completions` drops the `/v1` segment. The registration snippet shows `c.BaseAddress = …` without saying how the URI is built. | State that the adapter normalises `BaseUrl` to end with `/` and uses a relative `chat/completions`. Also state that `BaseAddress` is set from the validated `IOptions<AiOptions>` using the `AddHttpClient<TClient, TImpl>((sp, client) => ...)` overload. | New |
+| R-04 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/construction/u2-ai-assistant/nfr-design/reliability-design.md > NFR3.9 | The ticket is loaded as a tracked entity, the AI call can take up to 120 s, and then a single save follows. A concurrent edit to the same ticket during that window is not covered. If `PUT` changes priority, the analysis can overwrite it. Two parallel analyze calls (for example a double-click) also race, and the last one wins. SQLite connections open lazily, so no lock is held during the wait. | Add one line stating the accepted behaviour for concurrent edits and parallel calls, that the last write wins and that this is acceptable for a local, single-user app. Alternatively, re-load the ticket just before applying the result. | New |
+| R-05 | Minor | aidlc/spaces/default/intents/261019-supportdesk-ai/construction/u2-ai-assistant/nfr-design/observability-design.md > NFR2.18 | The adapter logs every outcome except ok at Warning, including `cancelled` (client disconnect). The U1 handler logs a client disconnect at Information, so the two layers disagree. | Log `cancelled` at Information to match the handler. | New |
+
+### Validation Tool Results
+
+| Tool | Result | Interpretation |
+|---|---|---|
+| None listed for this stage | n/a | Checked by hand: all 32 upstream NFR IDs in traceability.json are covered (31 OK, NFR5.2 Deferred to U4 with a stated reason). The spot-check of `GlobalExceptionHandler.cs` confirms the AI exception mappings (502, 502, 503, 504) and the 499 path. It also confirms the current `LogWarning(exception, ...)` call that the design says to change. |
+
+### Summary
+
+The design covers every NFR, keeps AI failures separate from CRUD, and the framework choices are feasible. It is READY with two Major gaps. The NFR3.4 token limits were changed from the required values without any recorded reason, and the failure classification ignores the body read and the envelope parse. Fix both before code generation.

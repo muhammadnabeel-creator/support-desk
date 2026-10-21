@@ -215,8 +215,7 @@ types:
   AiAnalysisResult: { category: Category, priority: Priority, sentiment: Sentiment, summary: "string 1-500", suggestedAction: "string 1-500" }
   AiDraftResult: { draft: "string 1-4000" }
 implementations:
-  - MockAiTicketService   # default; deterministic; output marked [MOCK]; no network
-  - GroqAiTicketService   # selected when Ai:Provider = Groq
+  - GroqAiTicketService   # the only production implementation (mock provider removed 2026-10-20); tests use hand-written fakes
 rules:
   - Callers receive only validated results or one of the four typed failures; never raw provider text.
   - The ticket id is never sent to the AI; only title, description and (for drafts) the prior analysis.
@@ -254,7 +253,8 @@ request:
 response_used: choices[0].message.content   # then validated by AiAssistant
 timeout: "{Ai:TimeoutSeconds} (default 20 s); no automatic retries"
 error_mapping:
-  timeout_or_cancel: AiTimeoutException (504)
+  timeout: AiTimeoutException (504)
+  client_disconnect: plain cancellation, nothing saved (U1 handler 499, no body)   # corrected 2026-10-20 per U2 design review
   http_4xx_5xx_or_network: AiProviderException (502)
   missing_api_key: AiNotConfiguredException (503)
   unparseable_or_invalid_content: AiInvalidOutputException (502)

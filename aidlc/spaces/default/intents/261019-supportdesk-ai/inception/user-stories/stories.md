@@ -9,7 +9,7 @@ Priorities use MoSCoW. The MVP line is decided in Delivery Planning.
 | Group | Must Have | Should Have | Won't Have (this time) |
 |---|---|---|---|
 | 1 Ticket Management | US1.1 Create, US1.2 List & filter, US1.3 View, US1.4 Edit, US1.5 Change status | — | Delete a ticket; pagination; sorting options; full-text search |
-| 2 AI Assistance | US2.1 Analyze, US2.2 Reject bad AI output, US2.3 Survive AI outages, US2.4 Draft reply, US2.5 Choose mock or Groq | — | Sending replies (email, chat, webhooks); automatic AI retries |
+| 2 AI Assistance | US2.1 Analyze, US2.2 Reject bad AI output, US2.3 Survive AI outages, US2.4 Draft reply, US2.5 Connect Groq | — | Sending replies (email, chat, webhooks); automatic AI retries |
 | 3 Dashboard | US3.1 Summary counts | — | Charts or trends over time |
 | 4 Reliability & Setup | US4.1 Consistent safe errors, US4.2 Run from a clean clone (release gate), US4.4 Secrets stay out of Git | US4.3 Example requests | Authentication; frontend UI; CI pipeline |
 
@@ -80,7 +80,7 @@ No story is Could Have: the brief's scope is small enough that everything in it 
 - **AC2.1.4** Given an unknown id, When Sam POSTs analyze, Then the response is 404 and the AI is not called.
 - **AC2.1.5** Given Sam edited a ticket's priority by hand to Low, When Sam analyzes it and the AI suggests Critical, Then the priority becomes Critical. This overwrite is the accepted consequence of the decision that analysis sets priority; no history of the old value is kept.
 - **AC2.1.6** Given a ticket in any status (Open, InProgress, Resolved or Closed), When Sam analyzes it, Then analysis runs normally; status never blocks AI features.
-- **Dependencies**: US2.5 (an AI implementation, the mock suffices). **INVEST**: testable with a fake AI.
+- **Dependencies**: US2.5 (the AI implementation; tests use a fake). **INVEST**: testable with a fake AI.
 
 ### US2.2 — Reject bad AI output
 **As** Sam, **I want** invalid AI answers to be refused rather than saved, **so that** I can trust what is stored on a ticket.
@@ -115,14 +115,15 @@ No story is Could Have: the brief's scope is small enough that everything in it 
 - **AC2.4.5** Given the AI times out, When Sam asks for a draft, Then the response is 504; given Groq is selected with no API key, Then the response is 503. In both cases any previous draft is kept.
 - **Dependencies**: US2.5. **INVEST**: testable with a fake AI.
 
-### US2.5 — Choose the mock or the real Groq AI
-**As** Riley, **I want** the project to use a clearly labelled mock AI by default and switch to Groq by configuration, **so that** I can run it without a key and still see the real integration when a key is provided.
+### US2.5 — Connect the real Groq AI
+**As** Riley, **I want** the project to call Groq with a key I supply through configuration, **so that** I can see the real AI integration while the key never appears in the repository.
 - **Priority**: Must Have
 - **Traces**: FR11, NFR5
-- **AC2.5.1** Given no AI configuration, When the app starts, Then the mock AI is used and its results are visibly marked as mock (e.g. `[MOCK]`).
-- **AC2.5.2** Given `Ai:Provider` = Groq and a key in user secrets or an environment variable, When Sam analyzes a ticket, Then the request goes to Groq's OpenAI-compatible endpoint and the validated result is returned.
-- **AC2.5.3** Given the README, When Riley reads the AI section, Then it states that only demo data may be sent to Groq, never real customer or personal data.
-- **Dependencies**: none. **INVEST**: small; mock path testable, Groq path verified manually with a key.
+- **Changed 2026-10-20**: the mock provider was removed at the person's request (U2 functional design); there is no provider switch.
+- **AC2.5.1** Given no Groq API key is configured, When the app starts, Then it starts normally and the AI endpoints return 503 "AI provider not configured" while all other endpoints work.
+- **AC2.5.2** Given a Groq key in user secrets or an environment variable, When Sam analyzes a ticket, Then the request goes to Groq's OpenAI-compatible endpoint and the validated result is returned.
+- **AC2.5.3** Given the README, When Riley reads the AI section, Then it states that only demo data may be sent to Groq, never real customer or personal data, and shows how to set the key with `dotnet user-secrets`.
+- **Dependencies**: none. **INVEST**: small; the not-configured path is testable with no key, the Groq path is verified manually with a key.
 
 ## 3. Dashboard
 
@@ -151,7 +152,7 @@ No story is Could Have: the brief's scope is small enough that everything in it 
 - **Priority**: Must Have
 - **Type**: release-gate acceptance story. Unlike the feature stories above, it is not built on its own: it is the final check run once, before submission, over the finished project (the clean-clone check in team practices).
 - **Traces**: NFR10, FR12, FR1
-- **AC4.2.1** Given a fresh clone and the .NET 8 SDK, When Riley follows the README (restore, `dotnet ef database update`, `dotnet run`), Then the API starts with the mock AI and Swagger UI lists every endpoint with request and response shapes and enum values.
+- **AC4.2.1** Given a fresh clone and the .NET 8 SDK, When Riley follows the README (restore, `dotnet ef database update`, `dotnet run`), Then the API starts (AI endpoints need Riley's own Groq key, set as the README shows) and Swagger UI lists every endpoint with request and response shapes and enum values.
 - **AC4.2.2** Given the README, When Riley reads it, Then it covers prerequisites, setup, configuration, database steps, endpoint examples and known limitations.
 - **AC4.2.4** Given a fresh clone, When Riley runs `dotnet test`, Then all tests pass without network access or an AI key.
 - **Dependencies**: runs after all Must Have stories are built. Persistence across restarts is covered by AC1.1.4.

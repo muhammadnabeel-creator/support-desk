@@ -1,0 +1,31 @@
+{
+  "stage": "code-generation",
+  "unit": "u2-ai-assistant",
+  "version": 1,
+  "writes": [
+    { "path": "src/SupportDesk.Api/Ai/AiAnalysisResult.cs" },
+    { "path": "src/SupportDesk.Api/Ai/AiDraftContext.cs" },
+    { "path": "src/SupportDesk.Api/Ai/AiDraftResult.cs" },
+    { "path": "src/SupportDesk.Api/Ai/AiOptions.cs" },
+    { "path": "src/SupportDesk.Api/Ai/AiOutputValidator.cs" },
+    { "path": "src/SupportDesk.Api/Ai/AiPrompts.cs" },
+    { "path": "src/SupportDesk.Api/Ai/GroqAiTicketService.cs" },
+    { "path": "src/SupportDesk.Api/Ai/GroqOptions.cs" },
+    { "path": "src/SupportDesk.Api/Ai/IAiTicketService.cs" },
+    { "path": "src/SupportDesk.Api/Ai/Groq/GroqChatRequest.cs" },
+    { "path": "src/SupportDesk.Api/Ai/Groq/GroqChatResponse.cs" },
+    { "path": "src/SupportDesk.Api/Ai/Groq/GroqChoice.cs" },
+    { "path": "src/SupportDesk.Api/Ai/Groq/GroqMessage.cs" },
+    { "path": "src/SupportDesk.Api/Ai/Groq/GroqResponseFormat.cs" },
+    { "path": "src/SupportDesk.Api/Errors/GlobalExceptionHandler.cs" },
+    { "path": "src/SupportDesk.Api/Tickets/Dtos/AnalysisResponse.cs" },
+    { "path": "src/SupportDesk.Api/Tickets/Dtos/DraftReplyResponse.cs" },
+    { "path": "src/SupportDesk.Api/Tickets/ITicketService.cs" },
+    { "path": "src/SupportDesk.Api/Tickets/TicketAnalysisOutcome.cs" },
+    { "path": "src/SupportDesk.Api/Tickets/TicketService.cs" },
+    { "path": "src/SupportDesk.Api/Tickets/TicketsController.cs" },
+    { "path": "src/SupportDesk.Api/Program.cs" },
+    { "path": "src/SupportDesk.Api/SupportDesk.Api.csproj" },
+    { "path": "src/SupportDesk.Api/appsettings.json" }
+  ]
+}
