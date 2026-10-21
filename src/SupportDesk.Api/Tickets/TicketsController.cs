@@ -8,7 +8,7 @@ using SupportDesk.Api.Tickets.Dtos;
 namespace SupportDesk.Api.Tickets;
 
 /// <summary>
-/// Ticket endpoints (contract C1, workflows WF1-WF5). Thin by design: it turns HTTP input into service
+/// Ticket endpoints (contract C1, workflows WF1-WF5, WF7, WF8). Thin by design: it turns HTTP input into service
 /// calls and service results into responses. Business rules live in <see cref="ITicketService"/>; every
 /// failure is raised as a typed exception and written as ProblemDetails by the global exception handler.
 /// </summary>
@@ -155,6 +155,68 @@ public sealed class TicketsController : ControllerBase
         var ticketId = ParseId(id);
         var ticket = await _tickets.ChangeStatusAsync(ticketId, request.Status, cancellationToken);
         return Ok(TicketResponse.FromTicket(ticket));
+    }
+
+    /// <summary>
+    /// Analyzes a ticket with AI and saves the result; the AI-suggested priority overwrites the ticket's priority (US2.1).
+    /// </summary>
+    /// <remarks>
+    /// Works for a ticket in any status, and never changes the status. Only the title and description are sent to
+    /// the AI. The validated category, sentiment, summary, suggested action and priority replace any earlier
+    /// analysis; <c>previousPriority</c> shows the priority before it was overwritten. If the AI fails, times out
+    /// or returns invalid output, nothing is saved. No request body.
+    /// </remarks>
+    /// <param name="id">The ticket id: a positive whole number.</param>
+    /// <param name="cancellationToken">Cancelled when the client disconnects.</param>
+    /// <returns>The analysis, the previous priority and the updated ticket.</returns>
+    /// <response code="200">The validated analysis, now saved on the ticket.</response>
+    /// <response code="400">The id is not a positive whole number.</response>
+    /// <response code="404">No ticket has this id; the AI was not called.</response>
+    /// <response code="502">The AI provider failed or returned invalid output. Nothing was saved.</response>
+    /// <response code="503">AI features are not configured on this server. Ticket operations still work.</response>
+    /// <response code="504">The AI provider did not respond in time. Nothing was saved.</response>
+    [HttpPost("{id}/analyze")]
+    [ProducesResponseType(typeof(AnalysisResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status504GatewayTimeout, ProblemJson)]
+    public async Task<ActionResult<AnalysisResponse>> AnalyzeAsync(string id, CancellationToken cancellationToken)
+    {
+        var outcome = await _tickets.AnalyzeAsync(ParseId(id), cancellationToken);
+        return Ok(AnalysisResponse.FromOutcome(outcome));
+    }
+
+    /// <summary>
+    /// Generates an AI reply draft and stores it on the ticket for human review. The draft is never sent (US2.4).
+    /// </summary>
+    /// <remarks>
+    /// Nothing is emailed, messaged or posted: the draft is only returned and saved as the ticket's latest draft,
+    /// replacing any earlier one. Works for a ticket in any status, and never changes the status. When the ticket
+    /// has been analyzed, its saved analysis is given to the AI as context. If the AI fails, times out or returns
+    /// invalid output, nothing is saved. No request body.
+    /// </remarks>
+    /// <param name="id">The ticket id: a positive whole number.</param>
+    /// <param name="cancellationToken">Cancelled when the client disconnects.</param>
+    /// <returns>The draft, its generation time and the "not sent" notice.</returns>
+    /// <response code="200">The draft, saved on the ticket and not sent.</response>
+    /// <response code="400">The id is not a positive whole number.</response>
+    /// <response code="404">No ticket has this id; the AI was not called.</response>
+    /// <response code="502">The AI provider failed or returned invalid output. Nothing was saved.</response>
+    /// <response code="503">AI features are not configured on this server. Ticket operations still work.</response>
+    /// <response code="504">The AI provider did not respond in time. Nothing was saved.</response>
+    [HttpPost("{id}/draft-reply")]
+    [ProducesResponseType(typeof(DraftReplyResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable, ProblemJson)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status504GatewayTimeout, ProblemJson)]
+    public async Task<ActionResult<DraftReplyResponse>> DraftReplyAsync(string id, CancellationToken cancellationToken)
+    {
+        var ticket = await _tickets.DraftReplyAsync(ParseId(id), cancellationToken);
+        return Ok(DraftReplyResponse.FromTicket(ticket));
     }
 
     /// <summary>

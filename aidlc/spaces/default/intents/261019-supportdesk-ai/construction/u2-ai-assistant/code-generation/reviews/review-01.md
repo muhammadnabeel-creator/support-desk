@@ -1,0 +1,31 @@
+## Review
+
+**Verdict:** READY
+**Reviewer:** aidlc-architecture-reviewer-agent
+**Date:** 2026-10-20T16:59:34Z
+**Iteration:** 1
+
+### Findings
+
+| ID | Severity | Location | Finding | Required action | Status |
+|---|---|---|---|---|---|
+| R-01 | Minor | src/SupportDesk.Api/Ai/AiOptions.cs `IsConfigured` and src/SupportDesk.Api/Ai/GroqAiTicketService.cs `SendAsync` (Authorization header) | `IsConfigured` only checks for whitespace-only, and the key is sent untrimmed. A key set through an environment variable or user secret with a trailing space or newline passes the check. It is then sent as `Bearer <key>\n`, which either fails header validation (an unexpected 500 instead of 502) or gets a 401 from Groq (502). I did not reproduce this because no key may be set. | Trim the key before the check and before building the header (for example in a `ConfiguredKey` property used by both). | New |
+| R-02 | Minor | src/SupportDesk.Api/Ai/GroqAiTicketService.cs `AnalysisMaxTokens = 400`, `DraftMaxTokens = 700` and `ExtractContent` | `finish_reason = "length"` is treated as invalid output (502). Two 500-character fields plus the JSON fit in 400 tokens for English text. For non-Latin scripts, which the prompt explicitly asks the model to use ("language of the ticket"), 500 characters can exceed 400 tokens, so valid analyses would often fail as truncated. The same applies to a 700-token draft. | Raise the limits (for example 600 for analysis, 1,000 for drafts), or note the limitation in the README AI section. Optional. | New |
+| R-03 | Minor | src/SupportDesk.Api/Tickets/TicketService.cs constructor and `ITicketService` doc comment | `TicketService` now takes `IAiTicketService` in its constructor, so every ticket request builds the typed Groq client. The behaviour is correct: the client needs no key and makes no network call, and the CRUD methods never touch it. But the comment "CRUD depends on the database and the clock alone" (BR6.5, NFR1.2) is only true of the methods, not of the class. | Reword the comment to say that CRUD methods do not use the AI service. Alternatively, accept this as-is. | New |
+| R-04 | Minor | src/SupportDesk.Api/Tickets/Dtos/AnalysisResponse.cs and DraftReplyResponse.cs, and the generated OpenAPI schema | The OpenAPI schema differs from C1. `summary`, `suggestedAction` and `draft` are `nullable: true` and have no `minLength` or `maxLength`. The enum schemas are named `TicketCategory`, `TicketPriority` and `TicketSentiment`, where C1 uses `Category`, `Priority` and `Sentiment`. 200 responses list `text/plain` and `text/json`. This is the same gap as U1 R-02. | Fix it together with U1 R-02 (schema ids and `[Produces]`), and add length hints or accept the difference before the U4 release-gate check. | New |
+| R-05 | Suggestion | src/SupportDesk.Api/Ai/GroqAiTicketService.cs `ReadEnvelopeAsync` and src/SupportDesk.Api/Ai/AiOutputValidator.cs `ValidateDraft` | The response body is read with no size cap, but the 20-second timeout and `max_tokens` bound it in practice. The draft is free text, so an injected ticket could make it contain links or odd wording. Only the length is checked. This is acknowledged in AiPrompts and BR11.2, and the human review step is the safeguard. | Make sure the README AI section (U4) says that drafts are untrusted text and must be reviewed. No code change needed. | New |
+
+### Validation Tool Results
+
+| Tool | Result | Interpretation |
+|---|---|---|
+| `dotnet build` | PASS, 0 warnings, 0 errors | The solution builds and CS1591 is clean. |
+| `dotnet test --no-build` | PASS, 18 passed, 0 failed | The existing U1 tests still pass after `TicketService` took the new dependency. No U2 tests exist (deferred to Task F by decision, so not a finding). |
+| `dotnet format --verify-no-changes` | PASS | Formatting is clean. |
+| Run app with no key (`--launch-profile http`), curl against `localhost:5189` | PASS | `POST /api/tickets/1/analyze` and `/draft-reply` return 503 ProblemDetails with `traceId` and no internal detail. An unknown id returns 404, `abc` returns 400 naming `id`, and `GET /api/tickets` returns 200. The app starts with an empty key, so `ValidateOnStart` does not require it. Swagger lists both endpoints with an integer `id` with `minimum: 1` and the 400, 404, 502, 503 and 504 responses. The server was stopped afterwards. This probe created one ticket (id 3) in the local gitignored dev SQLite file. |
+| Hard-rule check (code read) | PASS | Secrets: `appsettings.json` has `ApiKey: ""`, the project has a `UserSecretsId`, and `ToString()` hides the key. No secret appears in any `.cs` file. Auto-send: no outbound path other than Groq chat completions exists, and the draft is only stored and returned. Validation: both results go through `AiOutputValidator`, which accepts only JSON strings that match enum names after normalisation. Numbers, `"1"`, null, nested objects, arrays and trailing text are rejected, and extra fields are ignored. Execution: AI text is never used in SQL or commands. Unavailable AI: `AddHttpClient` has an infinite client timeout, and a linked CTS with `CancelAfter` applies `Ai:TimeoutSeconds`. Timeout and client cancel are separated by `when (cancellationToken.IsCancellationRequested)`. A cancelled read (`IOException`) is rethrown as a cancellation. Errors use fixed messages, the exception object is not logged for AI failures, and the log line holds only operation, model, outcome, duration and status. |
+| Contract and design cross-check | PASS | The base address gets a trailing slash and the relative path has no leading slash, so `/openai/v1/chat/completions` is kept. Tracked entities are changed only after the AI result is validated, followed by one `SaveChangesAsync`, so no partial write happens on failure (BR7.6). DI: the typed client is transient and is injected into the scoped `TicketService`, which is fine. C1 response shapes and the C2/C4 behaviour match the contract-summary and rules BR7.1 to BR11.2. |
+
+### Summary
+
+No Blocker or Major findings. The adapter, the validator and the failure classification match the design and the project's hard rules, and the running app gives the expected 503, 404 and 400 responses without a key. The open items are minor: trim the API key, review the token limits for non-Latin text, reword one comment, and close the OpenAPI gap with U1 R-02.

@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- XML doc comments feed Swagger. CS1591 (missing comment) is on: every public member needs a summary. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- The Groq API key is kept with `dotnet user-secrets`, outside the repository (NFR2.13, NFR8.14). -->
+    <UserSecretsId>supportdesk-api-7f3c2a1e</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

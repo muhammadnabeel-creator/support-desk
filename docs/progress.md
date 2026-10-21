@@ -24,11 +24,20 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 - [x] Task D — API endpoints (tests deferred to F) — smoke-checked with curl, approved 2026-10-20
 - [x] Task E — configuration, docs, format — approved 2026-10-20
 - [ ] Task F — tests (deferred; only when you say) and the 80% coverage check
-- [ ] `dotnet build && dotnet test` passes; Unit 1 approved; merged to `main`
+- [x] `dotnet build && dotnet test` passes (18/18); code review READY; manually tested by you; Unit 1 signed off and merged to `main` 2026-10-20
 
-## Unit 2 — AI Assistant
+## Unit 2 — AI Assistant (Groq only, no mock — decided 2026-10-20)
 
-- [ ] Not started
+- [x] Functional design (22 rules, analyze/draft flows, failure map) — reviewed READY, approved 2026-10-20
+- [x] Non-functional requirements and design (timeouts, secrets, untrusted output, logging) — reviewed READY, approved 2026-10-20
+- [x] Code plan (approved 2026-10-20; 4 build tasks A–D, tests in Task F)
+- [x] Task A — AI building blocks (interface, results, options, prompts, output validator, Groq message types) — approved 2026-10-20
+- [x] Task B — Groq client, timeout, error mapping, registration and config — approved 2026-10-20
+- [x] Task C — analyze and draft-reply in the ticket service and the two endpoints — approved 2026-10-20
+- [x] Task D — no-key check (503), user-secrets commands, docs and format — approved 2026-10-20
+- [x] Code review READY (5 minor findings; R-01 key trim and R-02 token limits fixed, the rest carried to U4); `dotnet build && dotnet test` verified 18/18
+- [x] Groq model switched to `openai/gpt-oss-120b` (old model returned 404); analyze and draft-reply tested with your key; Unit 2 signed off 2026-10-20
+- [ ] Unit 2 merged to `main` (by you)
 
 ## Unit 3 — Dashboard
 

@@ -130,9 +130,10 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                     traceId);
                 break;
             case AiInvalidOutputException or AiProviderException or AiNotConfiguredException or AiTimeoutException:
+                // Type name only: the exception object (stack, inner messages) is never logged (NFR2.19).
                 _logger.LogWarning(
-                    exception,
-                    "AI request failed and returned {StatusCode}. TraceId {TraceId}",
+                    "AI request failed with {ExceptionType} and returned {StatusCode}. TraceId {TraceId}",
+                    exception.GetType().Name,
                     statusCode,
                     traceId);
                 break;
