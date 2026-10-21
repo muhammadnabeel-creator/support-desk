@@ -50,7 +50,8 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 
 ## Unit 3 — Dashboard
 
-- [ ] Not started
+- [x] Implemented directly at your request (2026-10-21): `GET /api/dashboard/summary` with `IDashboardService` (read-only counts, no AI); build 0 warnings, 18/18 tests, format clean; smoke-checked against the ticket data
+- [ ] Your Postman check; AI-DLC records for U3 to be caught up; merged to `main`
 
 ## Unit 5 — MCP Server (built before Unit 4)
 
