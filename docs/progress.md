@@ -55,7 +55,9 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 
 ## Unit 5 — MCP Server (built before Unit 4)
 
-- [ ] Not started
+- [x] Implemented directly (2026-10-21): `--mcp` stdio mode with the official SDK (ModelContextProtocol 2.3.0), 8 tools calling the same services, shared registration/JSON/error mapping/input parsing; build 0 warnings, 18/18 tests, format clean
+- [x] Scripted stdio check from another folder: 8 tools listed, all tools OK, 400/404 errors in the shared shape, analyze + draft via Groq OK, stdout clean
+- [ ] Your Claude Code check + evidence screenshot/log; merged to `main`
 
 ## Unit 4 — Release Kit
 
