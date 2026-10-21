@@ -6,7 +6,7 @@ Every Bolt's Definition of Done also includes the team's standing checks: `dotne
 
 Sources: requirements (`inception/requirements-analysis/requirements.md`), stories (`inception/user-stories/stories.md`), components (`inception/domain-design/components.md`), units, dependency graph and story map (`inception/units-generation/unit-of-work.md`, `unit-of-work-dependency.md`, `unit-of-work-story-map.md`), contracts (`inception/contract-design/contract-summary.md`), team practices (`inception/practices-discovery/team-practices.md`).
 
-The order respects the dependency graph in `unit-of-work-dependency.md` (U1 first; U2 and U3 independent; U4 last) and uses the contracts in `inception/contract-design/contract-summary.md`.
+The order respects the dependency graph in `unit-of-work-dependency.md` (U1 first; U2 and U3 independent; U5 after U1–U3; U4 last) and uses the contracts in `inception/contract-design/contract-summary.md`.
 
 ## Sequence at a Glance
 
@@ -14,10 +14,12 @@ The order respects the dependency graph in `unit-of-work-dependency.md` (U1 firs
 |---|---|---|---|---|---|
 | 1 | Foundation & Tickets | U1 `u1-foundation-tickets` | `unit/u1-foundation-tickets` | Day 1–2 | US1.1–US1.5, US4.1 |
 | 2 | AI Assistant | U2 `u2-ai-assistant` | `unit/u2-ai-assistant` | Day 3 | US2.1–US2.5 |
-| 3 | Dashboard | U3 `u3-dashboard` | `unit/u3-dashboard` | Day 4 (morning) | US3.1 |
-| 4 | Release Kit | U4 `u4-release-kit` | `unit/u4-release-kit` | Day 4 (afternoon) – Day 5 | US4.2–US4.4 |
+| 3 | Dashboard | U3 `u3-dashboard` | `unit/u3-dashboard` | Day 3 (2026-10-21) | US3.1 |
+| 4 | MCP Server | U5 `u5-mcp-server` | `unit/u5-mcp-server` | Day 3 (afternoon) – Day 4 (2026-10-22) | US5.1–US5.4 |
+| 5 | Release Kit | U4 `u4-release-kit` | `unit/u4-release-kit` | Day 4 (afternoon) – Day 5 | US4.2–US4.4, US5.5 |
+| — | Task F — deferred tests | all units | on each unit branch or one test branch | Day 5 (before the release gate) | automated tests for every unit, 80% coverage |
 
-Day 5 also holds buffer, the clean-clone release gate, the submission tag, and demo/walkthrough preparation.
+**Re-planned 2026-10-21 (MCP change request).** Bolts 1 and 2 are done and merged. The trainer's updated brief adds the MCP server (U5), which goes after the Dashboard because its `get_dashboard_summary` tool needs the dashboard service, and before the Release Kit because the README must document the MCP setup and hold the MCP evidence. Day 5 holds the deferred automated tests (Task F, which the person asked to write at the end), the clean-clone release gate, the submission tag and demo/walkthrough preparation; there is no other buffer left.
 
 ## Bolt 1 — Foundation & Tickets (U1)
 
@@ -36,7 +38,7 @@ Day 5 also holds buffer, the clean-clone release gate, the submission tag, and d
 
 - **Units**: U2.
 - **Definition of Done**:
-  - `IAiTicketService` (contract C2), `MockAiTicketService` (default, `[MOCK]`), `GroqAiTicketService` (contract C4), provider chosen by `Ai:Provider`.
+  - `IAiTicketService` (contract C2) and `GroqAiTicketService` (contract C4). (As built 2026-10-20: Groq only, no mock provider; default model `openai/gpt-oss-120b`.)
   - Shared validator; timeout (default 20 s) and cancellation; typed failures mapped to 502/503/504.
   - `POST /api/tickets/{id}/analyze` (overwrites priority, returns `previousPriority`) and `POST /api/tickets/{id}/draft-reply` (stored, never sent).
   - Tests with fakes for valid output, malformed JSON, invalid enum, missing/over-long fields, timeout, provider error, not configured; tests never call Groq.
@@ -51,9 +53,20 @@ Day 5 also holds buffer, the clean-clone release gate, the submission tag, and d
 - **Confidence hypothesis**: counts computed in the database match the data, including `highPriority` (High or Critical) and `unanalyzed`.
 - **Expected demo**: create and analyze a few tickets, then show the summary counts.
 
-## Bolt 4 — Release Kit (U4)
+## Bolt 4 — MCP Server (U5) (added 2026-10-21)
+
+- **Units**: U5.
+- **Definition of Done**:
+  - `ModelContextProtocol` package; `--mcp` startup mode with stdio transport, logs to standard error only, content root at the API project folder, user secrets loaded explicitly (ADR-006).
+  - Service registration moved into one shared method; existing REST behaviour and tests unchanged (contract C6).
+  - The eight tools per contract C5, each calling the same service method as its REST endpoint and reusing the REST response builders; shared id check and enum parsing; failures as `isError` results with REST status, title and detail.
+  - Manual check with Claude Code: tools listed, `create_ticket`, `list_tickets`, `analyze_ticket` and `draft_reply` succeed on demo data; screenshot or log saved for U4.
+- **Confidence hypothesis**: an MCP client launched from any folder sees exactly eight tools, uses the same database and Groq key as the API, and gets the same results and safe errors as the REST endpoints.
+- **Expected demo**: in Claude Code, ask to list tickets, analyze one and draft a reply; then show the same ticket in Swagger.
+
+## Bolt 5 — Release Kit (U4)
 
 - **Units**: U4.
-- **Definition of Done**: README (prerequisites, setup, configuration with user-secrets example, `dotnet ef database update`, endpoint examples, known limitations, demo-data-only warning); `.http` file with a request per endpoint plus an invalid one; placeholder-only `appsettings.json` and `.env.example`; secrets check; clean-clone release gate passed (US4.2); submitted commit tagged.
+- **Definition of Done**: README (prerequisites, setup, configuration with user-secrets example, `dotnet ef database update`, endpoint examples, MCP server setup with sample Claude Code and Claude Desktop configurations and MCP Inspector, known limitations, demo-data-only warning for Groq and MCP clients); MCP evidence in `docs/mcp-evidence/` (US5.5); `.http` file with a request per endpoint plus an invalid one; placeholder-only `appsettings.json` and `.env.example`; secrets check; clean-clone release gate passed (US4.2); submitted commit tagged.
 - **Confidence hypothesis**: a reviewer with only the .NET 8 SDK and no AI key can clone, set up, run and test the project from the README alone.
 - **Expected demo**: the clean-clone run itself, start to finish.

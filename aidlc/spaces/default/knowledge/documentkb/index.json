@@ -7,8 +7,8 @@
         "kind": "managed",
         "path": "documents/supportdesk-requirements.pdf"
       },
-      "sha256": "073c41e8ec6fa4fb5920520fe92ad1860d9be98c7d03ddf6c57d995bff3ca65f",
-      "bytes": 133753,
+      "sha256": "531431c584fb5b7f41e7d57a6503347b15ab791ef03b61c1e85aad04d8b40583",
+      "bytes": 147565,
       "indexed_at": "2026-10-19T14:13:22.817Z",
       "extraction": {
         "state": "extracted",
@@ -16,9 +16,9 @@
           "name": "pdftotext",
           "version": "pdftotext version 22.02.0"
         },
-        "chars": 8697,
+        "chars": 11153,
         "truncated": false,
-        "source_revision": "073c41e8ec6fa4fb5920520fe92ad1860d9be98c7d03ddf6c57d995bff3ca65f"
+        "source_revision": "531431c584fb5b7f41e7d57a6503347b15ab791ef03b61c1e85aad04d8b40583"
       },
       "summary": {
         "state": "generated",
@@ -26,7 +26,7 @@
         "source_revision": "073c41e8ec6fa4fb5920520fe92ad1860d9be98c7d03ddf6c57d995bff3ca65f"
       },
       "content": "documentkb/01a15482-8720-72ab-940e-2d3a9adb0ce0/content.md",
-      "content_sha256": "1c0f8e889f0340efe4032643a9e91a2dbc2d6cb159b197d947aebca4c16c26e3",
+      "content_sha256": "2299d9b48b55402b0e5b13362d75837ecfe36ce67de3e1b7615db4aa183297f8",
       "summary_sha256": "b5d259923b7b45f7599805eebf069fc4fe99052afe56407e3f57e8eeb5586885",
       "tags": [
         "requirements",

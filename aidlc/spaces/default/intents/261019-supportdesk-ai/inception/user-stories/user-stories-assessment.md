@@ -20,3 +20,4 @@ SupportDesk AI is a user-facing API: a support agent creates, reviews, updates a
 - AI analysis and draft reply: the happy path, invalid AI output, timeout, provider not configured.
 - Ticket lifecycle: create -> list/filter -> update -> status -> close, including 400/404 paths.
 - Running the project from a clean clone with the mock provider (the brief's definition of done).
+- MCP access (change request 2026-10-21, FR13–FR15): an MCP client lists exactly eight tools, each tool behaves like its REST endpoint, unsafe input becomes a safe error result, and the setup is documented with evidence. Stories make the "same service, no duplicated logic" rule testable per tool.

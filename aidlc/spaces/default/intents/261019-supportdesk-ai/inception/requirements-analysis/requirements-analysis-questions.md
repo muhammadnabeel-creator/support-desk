@@ -94,3 +94,32 @@ C. No, I mean xAI's Grok after all
 X. Other (please specify)
 
 [Answer]: A
+
+## Change Request 2026-10-21 — MCP server (brief FR-11 to FR-13)
+
+The updated brief adds an MCP server so any MCP-compatible LLM client can use SupportDesk AI through 8 tools that call the existing services. FR-01 to FR-10 are unchanged.
+
+### MQ1. Which MCP transports should we support?
+The brief requires stdio; streamable HTTP is optional.
+
+A. (Suggested) stdio only: the client starts the server as a local process; nothing new listens on the network
+B. stdio plus streamable HTTP
+X. Other (please specify)
+
+[Answer]: A
+
+### MQ2. Which MCP client do we use for the demo and the evidence (screenshot or log)?
+You work on Linux, where Claude Desktop is not officially available.
+
+A. (Suggested) MCP Inspector (official test client, runs with npx, no account needed) for the evidence, plus a sample config for Claude Desktop / Claude Code in the README
+B. Claude Code as the client (uses your Claude account), plus MCP Inspector as backup
+X. Other (please specify)
+
+[Answer]: B
+
+### MQ3. How should the MCP tools report errors (bad input, unknown id, AI timeout, provider error)?
+A. (Suggested) A tool error result (`isError: true`) with the same short, safe title and detail as the REST ProblemDetails, plus the per-field validation messages; never stack traces or secrets
+B. Throw protocol-level errors (JSON-RPC errors) instead of tool error results
+X. Other (please specify)
+
+[Answer]: A

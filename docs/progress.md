@@ -39,7 +39,20 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 - [x] Groq model switched to `openai/gpt-oss-120b` (old model returned 404); analyze and draft-reply tested with your key; Unit 2 signed off 2026-10-20
 - [ ] Unit 2 merged to `main` (by you)
 
+## Change Request — MCP server (trainer's updated brief, 2026-10-21)
+
+- [x] Requirements FR13–FR15, NFR11–NFR12 (stdio only, Claude Code as client, tool error results) — reviewed READY, approved
+- [x] User stories US5.1–US5.5 — reviewed, gaps fixed, approved
+- [x] Domain design: McpServer component, ADR-006 (`--mcp` mode in the API project, tools call the same services) — approved
+- [x] Units: new U5 MCP Server — approved
+- [x] Contracts C5 (MCP tools) and C6 (shared services) — approved
+- [x] Delivery plan: U3 → U5 → U4 → Task F tests — approved
+
 ## Unit 3 — Dashboard
+
+- [ ] Not started
+
+## Unit 5 — MCP Server (built before Unit 4)
 
 - [ ] Not started
 
