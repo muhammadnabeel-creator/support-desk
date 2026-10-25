@@ -27,7 +27,7 @@ Brief IDs (FR-01..FR-13) are kept in brackets for traceability to the source doc
 | FR-07 Draft reply | FR8 | | §5 data model; §3 Swagger | FR1; FR12 |
 
 ### FR1 — Ticket data model [brief §5; Q2, Q3, Q4, Q6, Q7]
-- **FR1.1** A Ticket has: `Id` (integer, database-generated), `Title`, `Description`, `Status`, `Priority`, `Category` (nullable), `Sentiment` (nullable), `AiSummary` (nullable), `SuggestedAction` (nullable), `DraftReply` (nullable), `DraftReplyGeneratedAt` (nullable, UTC), `CreatedAt` (UTC), `UpdatedAt` (UTC).
+- **FR1.1** A Ticket has: `Id` (integer, database-generated), `Title`, `Description`, `Status`, `Priority`, `Category` (nullable), `Sentiment` (nullable), `AiSummary` (nullable), `SuggestedAction` (nullable), `CreatedAt` (UTC), `UpdatedAt` (UTC).
 - **FR1.2** `Status` is an enum: `Open`, `InProgress`, `Resolved`, `Closed`. `Priority` is an enum: `Low`, `Medium`, `High`, `Critical`.
 - **FR1.3** `Category` is an enum: `AccountAccess`, `Billing`, `TechnicalIssue`, `FeatureRequest`, `GeneralInquiry`, `Other` (displayed in JSON as `Account Access`, `Billing`, `Technical Issue`, `Feature Request`, `General Inquiry`, `Other`). `Sentiment` is an enum: `Positive`, `Neutral`, `Negative`, `Frustrated`. [Q3]
 - **FR1.4** Enums are serialized as strings in requests and responses, never as numbers.
@@ -46,7 +46,7 @@ Brief IDs (FR-01..FR-13) are kept in brackets for traceability to the source doc
 ### FR3 — List tickets [FR-02; Q8]
 - **FR3.1** `GET /api/tickets` returns all tickets, newest `CreatedAt` first, ties broken by `Id` descending.
 - **FR3.2** Optional query filters `status`, `priority` and `category` may be combined (AND). Filter values are the enum names, matched case-insensitively.
-- **FR3.3** No pagination in this version.
+- **FR3.3** ~~No pagination in this version.~~ **Changed 2026-10-22 at the person's request** (memory risk with thousands of tickets): page-based paging. `GET /api/tickets` takes `page` (≥ 1, default 1) and `pageSize` (1–200, default 50) and returns `{ items, page, pageSize, totalCount, totalPages }`; sorting stays newest first with id as tie-break so pages are repeatable; a page past the end is an empty list; out-of-range values return 400. The MCP `list_tickets` tool takes the same arguments with default 20 and maximum 50.
 - **AC3.1** Given no tickets, When I GET, Then I get 200 with an empty array (not an error).
 - **AC3.2** Given tickets of mixed status, When I GET `?status=Open&priority=High`, Then only tickets matching both are returned.
 - **AC3.3** Given `?status=Pending` (not a valid value), When I GET, Then I get 400 naming the parameter and listing the allowed values.
@@ -80,9 +80,9 @@ Brief IDs (FR-01..FR-13) are kept in brackets for traceability to the source doc
 
 ### FR8 — Draft reply [FR-07; Q4]
 - **FR8.1** `POST /api/tickets/{id}/draft-reply` asks the AI for a polite reply draft based on the ticket (and its analysis if present).
-- **FR8.2** The draft is validated (non-empty, max 4000 characters), stored on the ticket as `DraftReply` with `DraftReplyGeneratedAt`, replacing any earlier draft, and returned with `"status": "Draft — requires human review; not sent"`. [Q4]
+- **FR8.2** The draft is validated (non-empty, max 4000 characters) and returned with `ticketId`, `generatedAt` and `notice: "Draft — requires human review; not sent"`. **Changed 2026-10-22 at the person's request, to follow the brief (FR-07: "Return it for human review; do not send it")**: the draft is **not stored**; the `DraftReply` and `DraftReplyGeneratedAt` columns were removed by the `RemoveDraftReplyColumns` migration, and the ticket is not changed by this request. (Supersedes Q4 answer B.)
 - **FR8.3** The system has **no** capability to send a reply (no email, webhook or messaging integration). [rule: never auto-send]
-- **AC8.1** Given an existing ticket, Then 200 with the draft text and the review notice; GET of the ticket shows the same draft. Given the AI fails or returns empty text, Then no draft is saved and a controlled error is returned.
+- **AC8.1** Given an existing ticket, Then 200 with the draft text and the review notice, and the ticket itself is unchanged (nothing is stored). Given the AI fails or returns empty text, Then no draft is saved and a controlled error is returned.
 
 ### FR9 — Dashboard summary [FR-08]
 - **FR9.1** `GET /api/dashboard/summary` returns counts: `total`, `open` (Status = Open), `inProgress`, `resolved`, `closed`, `highPriority` (Priority = High or Critical, any status), and `unanalyzed` (Category is null).
@@ -106,7 +106,7 @@ Brief IDs (FR-01..FR-13) are kept in brackets for traceability to the source doc
 
 ### FR13 — MCP server [FR-11; MQ1] (added 2026-10-21)
 - **FR13.1** SupportDesk AI is exposed as a Model Context Protocol (MCP) server built with the official C# MCP SDK (`ModelContextProtocol` NuGet package), either as a separate project in the solution or as a startup mode of the API host (decided in design).
-- **FR13.2** Transport is **stdio only**: an MCP client starts the server as a local process and talks over standard input/output. No streamable HTTP transport and nothing new listening on the network. [MQ1]
+- **FR13.2** Transport is **stdio**: an MCP client starts the server as a local process (`--mcp`) and talks over standard input/output. [MQ1] **Changed 2026-10-21 at the person's request ("we always want to run both")**: the running web API also serves MCP over Streamable HTTP at `/mcp` (stateless, localhost, no authentication), with the same tools and services; stdio stays because the brief requires it.
 - **FR13.3** The MCP server uses the same SQLite database, configuration (including `Ai:*` settings from user secrets or environment variables) and services as the REST API. The database path resolves to the same file whatever working directory the MCP client launches the server from. The MCP server does not create or migrate the schema (the documented `dotnet ef database update` step does, as for the API); if the database has not been created, tools return a controlled error. The API and the MCP server may run at the same time on the same file; SQLite's own locking applies and last write wins (A5).
 - **FR13.4** Nothing but MCP protocol messages is written to standard output; logs go to standard error so they cannot corrupt the protocol stream.
 - **AC13.3** Given the server running over stdio with logging at Information, When tools are called (including a failing AI call), Then every line on standard output is a valid MCP JSON-RPC message.

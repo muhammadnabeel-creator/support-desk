@@ -11860,3 +11860,463 @@
 **Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-10-21T08:56:29Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T08:57:14Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:08:15Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:09:50Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:10:27Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:11:30Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:16:51Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Session Start
+**Timestamp**: 2026-10-21T13:17:03Z
+**Event**: SESSION_STARTED
+**Source**: startup
+**Session**: 30232dcf-160e-4500-b440-f550985748d8
+
+---
+
+## Session End
+**Timestamp**: 2026-10-21T13:17:05Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session End
+**Timestamp**: 2026-10-21T13:17:32Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Start
+**Timestamp**: 2026-10-21T13:17:39Z
+**Event**: SESSION_STARTED
+**Source**: startup
+**Session**: 1aed7aa2-1e2c-4328-95cd-74e1b8af92a2
+
+---
+
+## Session End
+**Timestamp**: 2026-10-21T13:17:41Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Resume
+**Timestamp**: 2026-10-21T13:17:44Z
+**Event**: SESSION_RESUMED
+**Source**: resume
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:20:13Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:21:27Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-10-21T13:22:15Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: <project-dir>/aidlc/spaces/default/intents/261019-supportdesk-ai/inception/requirements-analysis/requirements.md
+**Context**: inception > requirements-analysis > requirements.md
+
+---
+
+## Change Request: MCP also over HTTP inside the API
+**Timestamp**: 2026-10-21T13:22:17Z
+**User request**: ok we alwasy want to run boht not on hcekc ok args and how help me connect mcp give one by one things
+**Current state**: U4 release kit branch; U5 MCP built with stdio only (--mcp switch)
+**Impact assessment**: stdio cannot run inside the web process, so MCP is added over Streamable HTTP at /mcp in the running API (optional in the brief); stdio kept because the brief requires it; same tools and services via one shared setup (SupportDeskMcpExtensions)
+**User confirmation**: request as stated
+**Action taken**: added ModelContextProtocol.AspNetCore 2.3.0, MapMcp(/mcp) stateless; README and FR13.2 updated
+**Artifacts affected**: Program.cs, Mcp/McpServerHost.cs, Mcp/SupportDeskMcpExtensions.cs, SupportDesk.Api.csproj, README.md, requirements.md
+
+---
+
+## Session Start
+**Timestamp**: 2026-10-21T13:23:51Z
+**Event**: SESSION_STARTED
+**Source**: startup
+**Session**: 5e2eb2b0-5994-42b6-93de-02b3657272e5
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:23:53Z
+**Event**: HUMAN_TURN
+**Session**: 5e2eb2b0-5994-42b6-93de-02b3657272e5
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:24:19Z
+**Event**: HUMAN_TURN
+**Session**: 5e2eb2b0-5994-42b6-93de-02b3657272e5
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:25:43Z
+**Event**: HUMAN_TURN
+**Session**: 5e2eb2b0-5994-42b6-93de-02b3657272e5
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:29:12Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:46:44Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:49:32Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:50:58Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: group feature folders under Features/
+**Timestamp**: 2026-10-21T13:51:10Z
+**User request**: yes do the feature thing and follow best practive fro folde rhting
+**Current state**: U4 release kit branch; all features built
+**Impact assessment**: moves Tickets/, Ai/ and Dashboard/ under src/SupportDesk.Api/Features/ and renames namespaces SupportDesk.Api.{Tickets,Ai,Dashboard} to SupportDesk.Api.Features.{...} in 35 files; no behaviour change; Domain/, Errors/, Infrastructure/ (shared) and Mcp/ (entry point) stay at the top
+**User confirmation**: request as stated
+**Action taken**: moved folders, updated namespaces, dotnet format; build 0 warnings, 18/18 tests, REST/Swagger/MCP stdio and HTTP re-checked; README structure updated
+**Artifacts affected**: src/SupportDesk.Api/Features/**, Mcp/*, Infrastructure/SupportDeskServiceCollectionExtensions.cs, Program.cs, README.md. Paths in earlier AI-DLC records (code summaries, manifests) refer to the pre-move layout.
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T13:53:40Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: AI feature subfolders
+**Timestamp**: 2026-10-21T13:55:22Z
+**User request**: cant we further mae sub folder for ai option ai output vlairo ir for statiuc ones cant we keeo thne in sinfle file?
+**Action taken**: split Features/Ai into Models/, Configuration/, Validation/, Groq/ and Groq/Dtos/ with matching namespaces; kept one type per file (affirmed team Code Style rule) instead of merging types into one file
+**Outcome**: build 0 warnings, format clean, 18/18 tests, MCP stdio with Groq analyze/draft OK; README structure updated
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T14:58:11Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T15:10:19Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T16:09:44Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T16:15:12Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T16:16:08Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T16:16:47Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-21T16:17:06Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T07:21:58Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T07:23:22Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T07:25:10Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T07:26:08Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T07:28:33Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: page-based paging for the ticket list
+**Timestamp**: 2026-10-22T07:28:53Z
+**User request**: what if thre are thousands of tickets in there? wont this fill the memory and a possible crash? / ok implement it (page-based chosen)
+**Impact assessment**: dashboard already aggregates in SQL (one row); the unbounded list (REST GET /api/tickets and MCP list_tickets) was the memory risk; changes approved decision Q8/FR3.3 and the list response shape (array -> paged object)
+**Action taken**: PageRequest/PagedResult/PagedResponse; service validates page>=1, pageSize 1-200 (defaults 1/50) and uses COUNT + ORDER BY CreatedAt DESC, Id DESC + LIMIT/OFFSET; controller and MCP tool pass page/pageSize (MCP default 20, max 50); README, .http and FR3.3 updated
+**Outcome**: build 0 warnings, format clean, 18/18 tests; live check on a temporary 1000-ticket database (pages, limits, 400s, SQL LIMIT/OFFSET, MCP paging) passed
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T07:33:34Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T09:17:39Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T09:19:58Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: rate limit the AI endpoints
+**Timestamp**: 2026-10-22T09:20:11Z
+**User request**: ok add 2 Rate limiting on the AI endpoints (analyze, draft-reply)
+**Action taken**: IAiCallLimiter + FixedWindowAiCallLimiter (built-in System.Threading.RateLimiting, singleton, 1-minute fixed window, no queue) checked in TicketService.AnalyzeAsync/DraftReplyAsync after the 404 check and before the AI call, so REST and MCP share one budget; AiRateLimitedException -> 429 via ProblemMapping with Retry-After header (REST) and isError status 429 (MCP); Ai:MaxRequestsPerMinute (default 10, validated 1-1000) in appsettings, README, .env.example
+**Outcome**: build 0 warnings, format clean, 18/18 tests; live check with a budget of 3 and no key: unknown id 404 without using budget, calls 1-3 allowed, REST call 4 -> 429 Retry-After 60, MCP call 5 -> 429, non-AI endpoints unaffected
+**Note**: a stdio MCP process is a separate process with its own budget
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T09:46:56Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T09:49:01Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T10:12:17Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: Tickets and Dashboard subfolders
+**Timestamp**: 2026-10-22T10:13:35Z
+**User request**: ok cant we organixe files in dashibard fiolder and tickets fodler?
+**Action taken**: Tickets -> Dtos/ (existing), Models/ (CreateTicketInput, UpdateTicketInput, TicketListFilter, TicketAnalysisOutcome, PageRequest, PagedResult), Validation/ (TicketInputParsing); Dashboard -> Dtos/ (existing), Models/ (DashboardSummary); namespaces follow folders; one type per file kept
+**Outcome**: build 0 warnings, format clean, 18/18 tests, MCP stdio check OK; README structure updated
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T13:43:18Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T13:45:34Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T13:47:52Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-22T13:51:25Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: draft replies are returned, not stored
+**Timestamp**: 2026-10-22T13:51:48Z
+**User request**: ok we dont need to save it please read from docuemnt and implement accordingly
+**Brief**: FR-07 'Generate a draft response based on the ticket. Return it for human review; do not send it.'; section 5 data model has no draft field; supersedes requirements Q4 answer B
+**Action taken**: TicketService.DraftReplyAsync now reads the ticket (no tracking), checks the AI budget, calls the AI and returns a TicketDraft (ticketId, draft, generatedAt) without saving; Ticket.DraftReply/DraftReplyGeneratedAt and their TicketResponse fields removed; new migration RemoveDraftReplyColumns drops both columns (committed InitialCreate untouched); DraftReplyResponse.FromDraft; MCP draft_reply description updated; draft max length moved to AiOutputValidator.DraftMaxLength; early persistence tests updated (model must not have DraftReply); README, .http, FR1.1/FR8.2/AC8.1 updated
+**Outcome**: build 0 warnings, format clean, 18/18 tests; live check on a temporary DB: draft-reply 200 with a Groq draft, ticket unchanged, Tickets columns now match the brief's data model
+**Follow-up**: project.md correction 'The latest AI draft reply is stored on the ticket' is now outdated; to be corrected through the learnings ritual, not edited directly
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T18:32:09Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T18:32:54Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T18:36:06Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: FluentValidation for ticket input
+**Timestamp**: 2026-10-25T18:36:20Z
+**User request**: yes do add the fluent vaidatoio
+**Action taken**: FluentValidation 12.2.0; validators for CreateTicketInput, UpdateTicketInput, ChangeStatusInput (new model), TicketListFilter and PageRequest in Features/Tickets/Validation, sharing rules in TicketRules (TrimmedText, RequiredEnum, OptionalEnum, ValidateOrThrow -> ValidationFailedException); TicketService runs them before any work (static thread-safe instances), so REST and MCP are validated identically; [Required] removed from the request DTOs so every failing field is reported in one response (fixes U1 review R-01); messages unchanged
+**Outcome**: build 0 warnings, format clean, 18/18 tests; live REST and MCP checks: multiple field errors in one 400, same messages, trimming kept
+**Note**: invalid filter text is rejected by the controller/tool parsing before paging is checked, so a request with both bad filters and bad paging reports the filter errors first
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T18:39:07Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T18:40:52Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: report filter and paging errors together
+**Timestamp**: 2026-10-25T18:40:58Z
+**User request**: (quoted the leftover) if a list request has both an invalid filter text and bad paging, only the filter error comes back
+**Action taken**: TicketInputParsing.ParseListFilter parses the filter text and runs PageRequestValidator in one step (PageRequestValidator takes a max page size: REST 200, MCP 50); TicketsController and the list_tickets MCP tool both use it
+**Outcome**: build 0 warnings, format clean, 18/18 tests; live: ?status=Pending&page=0&pageSize=500 returns all three errors in one 400; MCP returns status and pageSize (max 50) errors together; valid paging and MCP default 20 unchanged
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T18:41:36Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
