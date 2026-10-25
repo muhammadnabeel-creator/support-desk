@@ -61,4 +61,9 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 
 ## Unit 4 — Release Kit
 
-- [ ] Not started
+- [x] README (setup, user secrets, database step, endpoints + real examples, errors, MCP setup for Claude Code / Claude Desktop / MCP Inspector, tests, structure, design notes, known limitations) — 2026-10-21
+- [x] `src/SupportDesk.Api/SupportDesk.Api.http` (every endpoint + invalid examples), `.env.example` (placeholders only)
+- [x] `docs/mcp-evidence/` with the stdio smoke-test log; ProblemDetails now also for unknown routes (404) and wrong methods (405)
+- [x] Secrets scan clean; database file ignored by Git
+- [ ] Your Claude Code screenshot/log in `docs/mcp-evidence/`; merged to `main`
+- [ ] Clean-clone release gate (after Task F tests)

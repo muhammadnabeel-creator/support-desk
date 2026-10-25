@@ -23,8 +23,14 @@ Content-Type: application/json
   "description": "short"
 }
 
-### List all tickets (newest first)
+### List tickets (newest first, first page of 50)
 GET {{baseUrl}}/api/tickets
+
+### Paging: page 2, 20 per page (pageSize 1-200)
+GET {{baseUrl}}/api/tickets?page=2&pageSize=20
+
+### Invalid paging -> 400 naming page / pageSize
+GET {{baseUrl}}/api/tickets?page=0&pageSize=500
 
 ### List with filters (combined with AND, case-insensitive enum names)
 GET {{baseUrl}}/api/tickets?status=Open&priority=High
@@ -70,7 +76,7 @@ Content-Type: application/json
 ### AI analysis (needs a Groq key; 503 without one). Saves the validated result and overwrites priority.
 POST {{baseUrl}}/api/tickets/{{ticketId}}/analyze
 
-### AI draft reply (needs a Groq key). Stored for human review; never sent.
+### AI draft reply (needs a Groq key). Returned for human review; not saved and never sent.
 POST {{baseUrl}}/api/tickets/{{ticketId}}/draft-reply
 
 ### Dashboard counts

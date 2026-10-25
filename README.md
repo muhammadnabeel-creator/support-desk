@@ -70,6 +70,7 @@ export Ai__Groq__ApiKey="<your-groq-api-key>"
 | `Ai:Groq:Model` | `openai/gpt-oss-120b` | Any chat model your Groq key can use |
 | `Ai:Groq:BaseUrl` | `https://api.groq.com/openai/v1` | Must be `https` |
 | `Ai:TimeoutSeconds` | `20` | 1–120. A slower AI call returns 504 and nothing is saved |
+| `Ai:MaxRequestsPerMinute` | `10` | 1–1000. AI requests (analyze and draft, REST and MCP together) allowed per minute; more get 429 with `Retry-After` |
 | `ConnectionStrings:SupportDesk` | `Data Source=App_Data/supportdesk.db` | Relative to the API project folder |
 
 ## Run the API
@@ -86,12 +87,12 @@ dotnet run --project src/SupportDesk.Api --launch-profile http
 | Method | Path | Purpose | Success |
 |---|---|---|---|
 | POST | `/api/tickets` | Create a ticket (title, description) | 201 + `Location` |
-| GET | `/api/tickets?status=&priority=&category=` | List tickets, newest first; optional filters | 200 |
+| GET | `/api/tickets?status=&priority=&category=&page=&pageSize=` | List tickets, newest first, one page at a time (default 50, max 200); optional filters | 200 |
 | GET | `/api/tickets/{id}` | Get one ticket | 200 |
 | PUT | `/api/tickets/{id}` | Update title, description and priority | 200 |
 | PATCH | `/api/tickets/{id}/status` | Set status: `Open`, `InProgress`, `Resolved`, `Closed` | 200 |
 | POST | `/api/tickets/{id}/analyze` | AI analysis: validated, saved, overwrites priority | 200 |
-| POST | `/api/tickets/{id}/draft-reply` | AI reply draft, stored for review and never sent | 200 |
+| POST | `/api/tickets/{id}/draft-reply` | AI reply draft, returned for human review; not saved, never sent | 200 |
 | GET | `/api/dashboard/summary` | Ticket counts | 200 |
 
 Ready-made requests for every endpoint, including invalid ones, are in
@@ -113,9 +114,17 @@ Content-Type: application/json
   "description": "I reset my password but still cannot sign in.",
   "status": "Open", "priority": "Medium",
   "category": null, "sentiment": null, "aiSummary": null, "suggestedAction": null,
-  "draftReply": null, "draftReplyGeneratedAt": null,
   "createdAt": "2026-10-21T13:11:29.2817486Z", "updatedAt": "2026-10-21T13:11:29.2817486Z"
 }
+```
+
+**List tickets** (`GET /api/tickets?status=Open&page=2&pageSize=50`): results come one page at a time, so a
+response is never larger than 200 tickets however many exist. A page past the end returns an empty `items` list,
+and `page < 1` or `pageSize` outside 1–200 returns 400.
+
+```json
+{ "items": [ { "id": 950, "title": "...", "status": "Open", "...": "..." } ],
+  "page": 2, "pageSize": 50, "totalCount": 1000, "totalPages": 20 }
 ```
 
 **Analyze a ticket** (`POST /api/tickets/1/analyze`): the AI output is checked against the allowed values and
@@ -131,7 +140,8 @@ lengths before anything is saved.
 }
 ```
 
-**Draft a reply** (`POST /api/tickets/1/draft-reply`):
+**Draft a reply** (`POST /api/tickets/1/draft-reply`). The draft is returned for an agent to review and edit.
+It is **not saved** on the ticket and **never sent** (brief FR-07):
 
 ```json
 {
@@ -166,6 +176,7 @@ Critical tickets in any status, and `unanalyzed` counts tickets with no category
 | 400 | Missing or invalid field, unknown enum value, malformed JSON, non-numeric or non-positive id |
 | 404 | Unknown ticket id or route |
 | 502 | The AI returned invalid output (nothing saved), or the AI provider failed |
+| 429 | Too many AI requests this minute (`Ai:MaxRequestsPerMinute`); see the `Retry-After` header. Other endpoints are not limited |
 | 503 | AI features are not configured (no Groq key) |
 | 504 | The AI provider timed out (nothing saved) |
 | 500 | Unexpected error (generic message; details only in the server log) |
@@ -184,7 +195,7 @@ API:
 | Tool | Same as | Input |
 |---|---|---|
 | `create_ticket` | `POST /api/tickets` | `title`, `description` |
-| `list_tickets` | `GET /api/tickets` | optional `status`, `priority`, `category` |
+| `list_tickets` | `GET /api/tickets` | optional `status`, `priority`, `category`, `page`, `pageSize` (default 20, max 50) |
 | `get_ticket` | `GET /api/tickets/{id}` | `id` |
 | `update_ticket` | `PUT /api/tickets/{id}` | `id`, `title`, `description`, `priority` |
 | `update_ticket_status` | `PATCH /api/tickets/{id}/status` | `id`, `status` |
@@ -268,13 +279,23 @@ dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage"
 
 ```
 src/SupportDesk.Api/
-  Tickets/         TicketsController, ITicketService/TicketService (business rules), request/response DTOs
-  Ai/              IAiTicketService, GroqAiTicketService (timeout, error mapping), prompts, AI-output validator
-  Dashboard/       DashboardController, IDashboardService/DashboardService (read-only counts)
-  Mcp/             McpServerHost (--mcp mode, stdio), TicketTools (the eight tools), tool result mapping
-  Domain/          Ticket entity and the Status, Priority, Category, Sentiment enums
-  Errors/          Typed exceptions, the shared error mapping and the global exception handler
-  Infrastructure/  DbContext, migrations, shared service registration, JSON settings, clock, DB path
+  Features/              one folder per feature (controller + service + DTOs together)
+    Tickets/             TicketsController, ITicketService/TicketService (business rules), plus:
+      Dtos/              API request/response shapes (TicketResponse, PagedResponse, AnalysisResponse, ...)
+      Models/            service inputs/outputs (CreateTicketInput, TicketListFilter, PageRequest, PagedResult, ...)
+      Validation/        FluentValidation validators (create, update, status, filters, paging) + TicketInputParsing
+    Ai/                  IAiTicketService (contract), AiPrompts, the AI request limiter, plus:
+      Models/            AiAnalysisResult, AiDraftResult, AiDraftContext (validated results)
+      Configuration/     AiOptions, GroqOptions (bound from the Ai settings)
+      Validation/        AiOutputValidator (untrusted AI text -> typed result or 502)
+      Groq/              GroqAiTicketService (timeout, error mapping); Dtos/ = Groq request/response shapes
+    Dashboard/           DashboardController, IDashboardService/DashboardService (read-only counts), plus:
+      Dtos/              DashboardSummaryResponse;  Models/ DashboardSummary
+  Mcp/                   MCP entry point: the eight tools, stdio host (--mcp), shared MCP setup (HTTP at /mcp)
+  Domain/                Ticket entity and the Status, Priority, Category, Sentiment enums (shared)
+  Errors/                Typed exceptions, the shared error mapping and the global exception handler
+  Infrastructure/        DbContext, migrations, shared service registration, JSON settings, clock, DB path
+  Program.cs             composition root: web host (REST + MCP over HTTP) or --mcp stdio host
 tests/SupportDesk.Api.Tests/   xUnit tests
 docs/                          brief (requirements.pdf), progress log, MCP evidence
 aidlc/                         AI-DLC planning and design records (requirements, stories, ADRs, plans, reviews)
@@ -286,12 +307,18 @@ results.
 
 ## Design notes
 
+- **Validation with FluentValidation.** Each service input has a validator (`Features/Tickets/Validation/`), for
+  example `CreateTicketInputValidator`. The service runs it before doing anything, so REST and MCP get identical
+  checks, and every failing field is reported in one 400 response.
 - **AI output is untrusted.** It is parsed into a typed result and checked against the allowed enum values and
   length limits. Anything else is rejected with 502 and nothing is saved. AI text is never executed or used in SQL.
 - **Ticket text is sent as data.** The prompt sends title and description as an escaped JSON object, so ticket
   text cannot change the instructions. The ticket id and timestamps are never sent.
 - **The AI is optional.** Every non-AI endpoint and tool works when Groq is down, slow or not configured. AI calls
   have a timeout and no automatic retries.
+- **The AI quota is protected.** A shared limit (default 10 AI requests per minute) applies to REST and MCP
+  together, so a script or a looping AI client cannot use up the Groq quota. Unknown ticket ids are rejected
+  before they count.
 - **No secrets in Git.** `appsettings.json` and `.env.example` hold placeholders only. Keys and ticket or AI text
   are never logged.
 - Decisions and their trade-offs (ADR-001 to ADR-006) are in
@@ -300,7 +327,8 @@ results.
 ## Known limitations
 
 - No authentication or authorization. The API is meant for a single local user.
-- No pagination, sorting options or full-text search. Tickets cannot be deleted; close them instead.
+- Paging is page-based (`page`/`pageSize`): if tickets are added while you page through, an item can appear on two
+  pages. There are no sorting options or full-text search. Tickets cannot be deleted; close them instead.
 - Concurrent edits are last-write-wins. The API and the MCP server may share the SQLite file at the same time.
 - Re-running analysis overwrites the ticket's priority and earlier analysis. No history is kept.
 - The AI features need your own Groq key. Groq can retire models, so set `Ai:Groq:Model` if the default
