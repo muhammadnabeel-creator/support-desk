@@ -23,7 +23,7 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 - [x] Task C — error handling and ticket business logic — approved 2026-10-20
 - [x] Task D — API endpoints (tests deferred to F) — smoke-checked with curl, approved 2026-10-20
 - [x] Task E — configuration, docs, format — approved 2026-10-20
-- [ ] Task F — tests (deferred; only when you say) and the 80% coverage check
+- [x] Task F — tests and the 80% coverage check (2026-10-25): 207 tests pass (U1 102, U2 74, U3 7, U5 24); line coverage 97.1%, branch 88.5%; format clean
 - [x] `dotnet build && dotnet test` passes (18/18); code review READY; manually tested by you; Unit 1 signed off and merged to `main` 2026-10-20
 
 ## Unit 2 — AI Assistant (Groq only, no mock — decided 2026-10-20)

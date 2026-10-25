@@ -268,8 +268,13 @@ Evidence of real tool calls is in [`docs/mcp-evidence/`](docs/mcp-evidence/).
 dotnet test
 ```
 
-Tests use xUnit, SQLite in-memory databases and hand-written fakes for the AI. They never call Groq and need
-no key or network. For line coverage (EF migrations and `Program.cs` excluded):
+207 tests use xUnit, SQLite in-memory databases and hand-written fakes for the AI. They never call Groq and need
+no key or network. They cover validation, the ticket, AI and dashboard services, the Groq client (with a stub
+network), error mapping, the MCP tools, the HTTP API end to end (including AI failures, rate limiting and
+parallel requests) and MCP over HTTP. Line coverage is about 97%.
+
+Run one area at a time with a filter, for example `dotnet test --filter "Unit=U2"` for the AI tests
+(`U1` tickets, `U2` AI, `U3` dashboard, `U5` MCP). For line coverage (EF migrations and `Program.cs` excluded):
 
 ```bash
 dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage"
