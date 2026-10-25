@@ -12320,3 +12320,26 @@
 **Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-10-25T18:43:51Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Task F: automated tests written
+**Timestamp**: 2026-10-25T18:56:01Z
+**User request**: ok moved now do this task (Task F, deferred tests)
+**Action taken**: test helpers (FakeClock, FakeAiTicketService, FakeAiCallLimiter, StubHttpMessageHandler, ServiceHarness, TestApiFactory with in-memory or temp-file SQLite, module initializer disabling config reload); tests by layer: validators and input parsing; TicketService (CRUD, paging, AI flows, no partial writes, 404/rate limit before the AI); DashboardService; AiOutputValidator, AiPrompts, GroqAiTicketService with a stub network (no key, error statuses, bad envelopes, length cut-off, timeout vs caller cancel, URL and bearer), settings and limiter; ProblemMapping; McpToolResults and TicketTools (exactly eight tools, no delete); API end to end (tickets, AI endpoints and failures, 429 Retry-After, dashboard, parallel creates on a file database, MCP over HTTP)
+**Outcome**: 207 tests pass, stable over repeated runs; line coverage 97.1%, branch 88.5% (migrations and Program.cs excluded; McpServerHost stdio startup is the only uncovered file); dotnet format clean; no test calls Groq
+**Notes**: inotify limit with many parallel hosts fixed by DOTNET_hostBuilder__reloadConfigOnChange=false; the concurrency test uses a temporary SQLite file because one in-memory connection object cannot serve parallel requests
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T19:05:00Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
