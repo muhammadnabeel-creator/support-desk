@@ -1,11 +1,12 @@
-using ModelContextProtocol.Protocol;
 using SupportDesk.Api.Infrastructure;
 
 namespace SupportDesk.Api.Mcp;
 
 /// <summary>
-/// Runs the API project as an MCP server over stdio when started with <c>--mcp</c> (FR13, ADR-006). It uses the
-/// same services, configuration and database as the web API; nothing listens on the network.
+/// Runs the API project as an MCP server over stdio when started with <c>--mcp</c> (FR13, ADR-006): the transport
+/// the brief requires, for clients that start their own server process. It uses the same services, configuration
+/// and database as the web API, and nothing listens on the network. (The running web API also serves MCP over
+/// HTTP at <c>/mcp</c>; see <c>Program.cs</c>.)
 /// </summary>
 public static class McpServerHost
 {
@@ -39,36 +40,10 @@ public static class McpServerHost
         builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
 
         builder.Services.AddSupportDeskServices();
-        builder.Services
-            .AddMcpServer(options => options.ServerInfo = new Implementation { Name = "supportdesk", Version = "1.0" })
-            .WithStdioServerTransport()
-            .WithTools<TicketTools>()
-            .WithRequestFilters(filters => filters.AddCallToolFilter(next => async (context, cancellationToken) =>
-            {
-                // Our tools turn every failure into an error result with structured content. An error result
-                // without it comes from the SDK itself, which happens when the arguments could not be bound
-                // (wrong type or missing value): report that as a 400 in the shared error shape (contract C6).
-                try
-                {
-                    var result = await next(context, cancellationToken);
-                    return result.IsError == true && result.StructuredContent is null
-                        ? InvalidArguments()
-                        : result;
-                }
-                catch (Exception exception) when (exception is ArgumentException or FormatException
-                    or System.Text.Json.JsonException or InvalidCastException)
-                {
-                    return InvalidArguments();
-                }
-            }));
+        builder.Services.AddSupportDeskMcp().WithStdioServerTransport();
 
         await builder.Build().RunAsync();
     }
-
-    private static CallToolResult InvalidArguments() => McpToolResults.Error(
-        StatusCodes.Status400BadRequest,
-        McpToolResults.InvalidArgumentsTitle,
-        "Check the argument names and types against the tool's input schema.");
 
     /// <summary>
     /// Walks up from the running assembly's folder (for example <c>bin/Debug/net8.0</c>) to the folder that

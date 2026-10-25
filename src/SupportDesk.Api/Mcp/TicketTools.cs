@@ -1,11 +1,13 @@
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using SupportDesk.Api.Dashboard;
-using SupportDesk.Api.Dashboard.Dtos;
 using SupportDesk.Api.Domain;
-using SupportDesk.Api.Tickets;
-using SupportDesk.Api.Tickets.Dtos;
+using SupportDesk.Api.Features.Dashboard;
+using SupportDesk.Api.Features.Dashboard.Dtos;
+using SupportDesk.Api.Features.Tickets;
+using SupportDesk.Api.Features.Tickets.Dtos;
+using SupportDesk.Api.Features.Tickets.Models;
+using SupportDesk.Api.Features.Tickets.Validation;
 
 namespace SupportDesk.Api.Mcp;
 
@@ -18,6 +20,9 @@ namespace SupportDesk.Api.Mcp;
 [McpServerToolType]
 public sealed class TicketTools
 {
+    private const int McpDefaultPageSize = 20;
+    private const int McpMaxPageSize = 50;
+
     private readonly ITicketService _tickets;
     private readonly IDashboardService _dashboard;
     private readonly ILogger<TicketTools> _logger;
@@ -54,30 +59,28 @@ public sealed class TicketTools
     /// <param name="status">Optional status filter.</param>
     /// <param name="priority">Optional priority filter.</param>
     /// <param name="category">Optional category filter.</param>
+    /// <param name="page">Optional 1-based page number (default 1).</param>
+    /// <param name="pageSize">Optional page size, 1-50 for MCP (default 20).</param>
     /// <param name="cancellationToken">Cancelled when the client cancels the call.</param>
-    /// <returns>The matching tickets, newest first, or an error result.</returns>
+    /// <returns>One page of matching tickets, newest first, or an error result.</returns>
     [McpServerTool(Name = "list_tickets", ReadOnly = true)]
-    [Description("List tickets, newest first. Optional filters are combined with AND.")]
+    [Description("List tickets, newest first, one page at a time. Optional filters are combined with AND. The result includes totalCount and totalPages; ask for the next page if you need more.")]
     public Task<CallToolResult> ListTicketsAsync(
         [Description("Optional status: Open, InProgress, Resolved or Closed.")] string? status = null,
         [Description("Optional priority: Low, Medium, High or Critical.")] string? priority = null,
         [Description("Optional category: AccountAccess, Billing, TechnicalIssue, FeatureRequest, GeneralInquiry or Other.")] string? category = null,
+        [Description("Optional 1-based page number. Default 1.")] int? page = null,
+        [Description("Optional tickets per page, 1-50. Default 20.")] int? pageSize = null,
         CancellationToken cancellationToken = default) =>
         McpToolResults.RunAsync(
             async () =>
             {
-                var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
-                var filter = new TicketListFilter(
-                    TicketInputParsing.ParseOptionalEnum<TicketStatus>(status, nameof(status), errors),
-                    TicketInputParsing.ParseOptionalEnum<TicketPriority>(priority, nameof(priority), errors),
-                    TicketInputParsing.ParseOptionalEnum<TicketCategory>(category, nameof(category), errors));
-                if (errors.Count > 0)
-                {
-                    throw new Errors.ValidationFailedException(errors);
-                }
+                // Smaller pages than REST keep the result small enough for an LLM's context.
+                var paging = new PageRequest(page, pageSize ?? McpDefaultPageSize);
+                var filter = TicketInputParsing.ParseListFilter(status, priority, category, paging, McpMaxPageSize);
 
-                var tickets = await _tickets.ListAsync(filter, cancellationToken);
-                return tickets.Select(TicketResponse.FromTicket).ToList();
+                var tickets = await _tickets.ListAsync(filter, paging, cancellationToken);
+                return PagedResponse<TicketResponse>.From(tickets, TicketResponse.FromTicket);
             },
             _logger,
             cancellationToken);
@@ -168,12 +171,12 @@ public sealed class TicketTools
     /// <param name="cancellationToken">Cancelled when the client cancels the call.</param>
     /// <returns>The stored draft with its review notice, or an error result.</returns>
     [McpServerTool(Name = "draft_reply", Destructive = false, OpenWorld = true)]
-    [Description("Ask the AI to draft a reply to the customer. The draft is stored on the ticket for a human to review and is never sent.")]
+    [Description("Ask the AI to draft a reply to the customer. The draft is returned for a human to review and edit; it is not saved and never sent.")]
     public Task<CallToolResult> DraftReplyAsync(
         [Description("Ticket id, a whole number of 1 or more.")] int id,
         CancellationToken cancellationToken) =>
         McpToolResults.RunAsync(
-            async () => DraftReplyResponse.FromTicket(
+            async () => DraftReplyResponse.FromDraft(
                 await _tickets.DraftReplyAsync(TicketInputParsing.ValidateId(id), cancellationToken)),
             _logger,
             cancellationToken);

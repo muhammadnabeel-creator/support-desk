@@ -54,6 +54,10 @@ builder.Services.AddSwaggerGen(options =>
 // with the --mcp host so REST controllers and MCP tools use the same implementations (ADR-006, contract C6).
 builder.Services.AddSupportDeskServices();
 
+// MCP over Streamable HTTP at /mcp, always on while the API runs: the same eight tools and services as the
+// stdio mode (--mcp), so an MCP client can connect to the running API by URL (FR13, ADR-006 amendment).
+builder.Services.AddSupportDeskMcp().WithHttpTransport(options => options.Stateless = true);
+
 // Errors: one exception handler turns every failure into ProblemDetails with a traceId (BR6.1-BR6.4).
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = ProblemDetailsCustomizer.Customize);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -67,6 +71,9 @@ var app = builder.Build();
 // Registered in every environment; the developer exception page is never used (NFR2.1, NFR2.2).
 app.UseExceptionHandler();
 
+// Unknown routes (404) and wrong methods (405) get a ProblemDetails body too, not an empty response (BR6.1).
+app.UseStatusCodePages();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -78,6 +85,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapMcp("/mcp");
 
 app.Run();
 

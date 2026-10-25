@@ -41,7 +41,6 @@ public class SupportDeskDbContext : DbContext
         ticket.Property(t => t.Description).IsRequired().HasMaxLength(Ticket.DescriptionMaxLength);
         ticket.Property(t => t.AiSummary).HasMaxLength(Ticket.AiSummaryMaxLength);
         ticket.Property(t => t.SuggestedAction).HasMaxLength(Ticket.SuggestedActionMaxLength);
-        ticket.Property(t => t.DraftReply).HasMaxLength(Ticket.DraftReplyMaxLength);
 
         // Enums are stored by name, never by number (entity constraint, contract C3).
         ticket.Property(t => t.Status).HasConversion<string>().HasMaxLength(EnumNameMaxLength);

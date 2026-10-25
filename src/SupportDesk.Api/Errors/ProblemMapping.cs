@@ -6,7 +6,7 @@ namespace SupportDesk.Api.Errors;
 /// The one mapping from exceptions to error responses (BR6.1, BR6.2, ADR-005), shared by the REST exception
 /// handler and the MCP tools (contract C6) so both report every failure with the same status, title and detail.
 /// Typed failures map to fixed codes: validation 400, ticket not found 404, invalid AI output 502, AI provider
-/// error 502, AI not configured 503, AI timeout 504. Anything else is a generic 500 that never carries a stack
+/// error 502, AI not configured 503, AI timeout 504, AI request limit reached 429. Anything else is a generic 500 that never carries a stack
 /// trace, exception type or exception message.
 /// </summary>
 public static class ProblemMapping
@@ -52,6 +52,10 @@ public static class ProblemMapping
             StatusCodes.Status504GatewayTimeout,
             "The AI provider timed out.",
             "The AI provider did not respond in time. Nothing was saved. Try again later."),
+        AiRateLimitedException rateLimited => Problem(
+            StatusCodes.Status429TooManyRequests,
+            "Too many AI requests.",
+            $"The AI request limit was reached. Try again in {rateLimited.RetryAfterSeconds} seconds. Ticket operations still work."),
         BadHttpRequestException badRequest => Problem(
             badRequest.StatusCode,
             "The request could not be read.",

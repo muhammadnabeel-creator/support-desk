@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SupportDesk.Api.Ai;
-using SupportDesk.Api.Dashboard;
-using SupportDesk.Api.Tickets;
+using SupportDesk.Api.Features.Ai;
+using SupportDesk.Api.Features.Ai.Configuration;
+using SupportDesk.Api.Features.Ai.Groq;
+using SupportDesk.Api.Features.Dashboard;
+using SupportDesk.Api.Features.Tickets;
 
 namespace SupportDesk.Api.Infrastructure;
 
@@ -50,7 +52,14 @@ public static class SupportDeskServiceCollectionExtensions
             .Validate(
                 options => options.TimeoutSeconds is >= AiOptions.MinTimeoutSeconds and <= AiOptions.MaxTimeoutSeconds,
                 $"Ai:TimeoutSeconds must be between {AiOptions.MinTimeoutSeconds} and {AiOptions.MaxTimeoutSeconds}.")
+            .Validate(
+                options => options.MaxRequestsPerMinute is >= AiOptions.MinMaxRequestsPerMinute
+                    and <= AiOptions.MaxMaxRequestsPerMinute,
+                $"Ai:MaxRequestsPerMinute must be between {AiOptions.MinMaxRequestsPerMinute} and {AiOptions.MaxMaxRequestsPerMinute}.")
             .ValidateOnStart();
+
+        // One AI request budget for the whole process (REST and MCP share it), so the Groq quota is protected.
+        services.AddSingleton<IAiCallLimiter, FixedWindowAiCallLimiter>();
 
         // Groq through a typed, pooled HttpClient (NFR3.3). The base address keeps its "/openai/v1" path thanks to
         // the trailing slash; the client's own timeout is off because GroqAiTicketService applies

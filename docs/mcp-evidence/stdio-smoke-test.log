@@ -1,0 +1,31 @@
+# SupportDesk MCP stdio smoke test — 2026-10-21T13:11:53Z
+# Client: scripted JSON-RPC over stdio, server started from /tmp with: dotnet src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll --mcp
+# Demo data only. Results truncated to 300 characters.
+server: {'name': 'supportdesk', 'version': '1.0'}
+tools: ['analyze_ticket', 'create_ticket', 'draft_reply', 'get_dashboard_summary', 'get_ticket', 'list_tickets', 'update_ticket', 'update_ticket_status']
+get_dashboard_summary {}
+   -> ok      {"total":4,"open":3,"inProgress":0,"resolved":1,"closed":0,"highPriority":1,"unanalyzed":2}
+list_tickets {"status": "Open"}
+   -> ok      [{"id":4,"title":"Unable to access my account","description":"I reset my password but still cannot sign in.","status":"Open","priority":"Medium","category":null,"sentiment":null,"aiSummary":null,"suggestedAction":null,"draftReply":null,"draftReplyGeneratedAt":null,"createdAt":"2026-10-21T13:11:29.28
+list_tickets {"status": "Done"}
+   -> isError {"status":400,"title":"One or more validation errors occurred.","detail":"See the errors property for the fields that failed validation.","errors":{"status":["Status is not valid. Allowed values: Open, InProgress, Resolved, Closed."]}}
+get_ticket {"id": 1}
+   -> ok      {"id":1,"title":"New title","description":"A long enough description.","status":"Resolved","priority":"Low","category":"GeneralInquiry","sentiment":"Neutral","aiSummary":"Customer submitted a generic ticket with a new title and a brief description, providing no specific issue details.","suggestedAct
+get_ticket {"id": 0}
+   -> isError {"status":400,"title":"One or more validation errors occurred.","detail":"See the errors property for the fields that failed validation.","errors":{"id":["Id must be a positive whole number."]}}
+get_ticket {"id": 999999}
+   -> isError {"status":404,"title":"Ticket not found.","detail":"Ticket 999999 was not found."}
+get_ticket {"id": "abc"}
+   -> isError {"status":400,"title":"The tool arguments could not be read.","detail":"Check the argument names and types against the tool\u0027s input schema."}
+update_ticket_status {"id": 1, "status": 1}
+   -> isError {"status":400,"title":"The tool arguments could not be read.","detail":"Check the argument names and types against the tool\u0027s input schema."}
+update_ticket_status {"id": 1, "status": "1"}
+   -> isError {"status":400,"title":"One or more validation errors occurred.","detail":"See the errors property for the fields that failed validation.","errors":{"status":["Status is not valid. Allowed values: Open, InProgress, Resolved, Closed."]}}
+create_ticket {"title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   -> isError {"status":400,"title":"One or more validation errors occurred.","detail":"See the errors property for the fields that failed validation.","errors":{"title":["Title must be between 3 and 200 characters after trimming."]}}
+analyze_ticket {"id": 1}
+   -> ok      {"category":"GeneralInquiry","priority":"Low","sentiment":"Neutral","summary":"Customer submitted a new title and a brief description without specifying an issue or request.","suggestedAction":"Acknowledge receipt and ask the customer to provide more details about their request or concern.","previou
+draft_reply {"id": 1}
+   -> ok      {"ticketId":1,"draft":"Thank you for reaching out to us. We have received your message with the new title and description. To help us assist you more effectively, could you please provide a few more details about the specific request or issue you would like us to address? Any additional information 
+non-JSON lines on stdout: 0
+stderr lines: 100

@@ -1,0 +1,83 @@
+# SupportDesk AI — example requests (VS Code REST Client, Visual Studio or JetBrains HTTP client).
+# Start the API first:  dotnet run --project src/SupportDesk.Api --launch-profile http
+# Use demo data only. Replace the ids below with ids that exist in your database.
+
+@baseUrl = http://localhost:5189
+@ticketId = 1
+
+### Create a ticket -> 201 Created with a Location header
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "title": "Unable to access my account",
+  "description": "I reset my password but still cannot sign in."
+}
+
+### Create with invalid input -> 400 ProblemDetails naming the field
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "title": "  ",
+  "description": "short"
+}
+
+### List tickets (newest first, first page of 50)
+GET {{baseUrl}}/api/tickets
+
+### Paging: page 2, 20 per page (pageSize 1-200)
+GET {{baseUrl}}/api/tickets?page=2&pageSize=20
+
+### Invalid paging -> 400 naming page / pageSize
+GET {{baseUrl}}/api/tickets?page=0&pageSize=500
+
+### List with filters (combined with AND, case-insensitive enum names)
+GET {{baseUrl}}/api/tickets?status=Open&priority=High
+
+### Invalid filter -> 400 listing the allowed values
+GET {{baseUrl}}/api/tickets?status=Pending
+
+### Get one ticket
+GET {{baseUrl}}/api/tickets/{{ticketId}}
+
+### Unknown id -> 404 ProblemDetails
+GET {{baseUrl}}/api/tickets/999999
+
+### Non-numeric id -> 400
+GET {{baseUrl}}/api/tickets/abc
+
+### Update title, description and priority (status cannot be changed here)
+PUT {{baseUrl}}/api/tickets/{{ticketId}}
+Content-Type: application/json
+
+{
+  "title": "Cannot sign in after password reset",
+  "description": "I reset my password twice and still cannot sign in to my account.",
+  "priority": "High"
+}
+
+### Change status (Open, InProgress, Resolved, Closed)
+PATCH {{baseUrl}}/api/tickets/{{ticketId}}/status
+Content-Type: application/json
+
+{
+  "status": "InProgress"
+}
+
+### Invalid status -> 400 listing the allowed values
+PATCH {{baseUrl}}/api/tickets/{{ticketId}}/status
+Content-Type: application/json
+
+{
+  "status": "Done"
+}
+
+### AI analysis (needs a Groq key; 503 without one). Saves the validated result and overwrites priority.
+POST {{baseUrl}}/api/tickets/{{ticketId}}/analyze
+
+### AI draft reply (needs a Groq key). Returned for human review; not saved and never sent.
+POST {{baseUrl}}/api/tickets/{{ticketId}}/draft-reply
+
+### Dashboard counts
+GET {{baseUrl}}/api/dashboard/summary
