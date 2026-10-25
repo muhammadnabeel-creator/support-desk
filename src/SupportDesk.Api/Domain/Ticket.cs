@@ -18,9 +18,6 @@ public class Ticket
     /// <summary>Maximum length of <see cref="SuggestedAction"/>.</summary>
     public const int SuggestedActionMaxLength = 500;
 
-    /// <summary>Maximum length of <see cref="DraftReply"/>.</summary>
-    public const int DraftReplyMaxLength = 4000;
-
     /// <summary>System-generated, positive identifier; never reused.</summary>
     public int Id { get; set; }
 
@@ -47,12 +44,6 @@ public class Ticket
 
     /// <summary>AI-suggested next action (max 500 characters); null until analyzed.</summary>
     public string? SuggestedAction { get; set; }
-
-    /// <summary>Latest AI draft reply (max 4000 characters). A draft only; never sent.</summary>
-    public string? DraftReply { get; set; }
-
-    /// <summary>UTC time the draft reply was generated; set together with <see cref="DraftReply"/>.</summary>
-    public DateTime? DraftReplyGeneratedAt { get; set; }
 
     /// <summary>UTC creation time; set once and never changed.</summary>
     public DateTime CreatedAt { get; set; }

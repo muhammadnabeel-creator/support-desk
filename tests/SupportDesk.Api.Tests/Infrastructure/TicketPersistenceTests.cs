@@ -29,8 +29,6 @@ public sealed class TicketPersistenceTests : IDisposable
             Sentiment = TicketSentiment.Frustrated,
             AiSummary = "User locked out after password change.",
             SuggestedAction = "Reset the password and unlock the account.",
-            DraftReply = "Hello, we have unlocked your account.",
-            DraftReplyGeneratedAt = BaseTime.AddMinutes(5),
             CreatedAt = BaseTime,
             UpdatedAt = BaseTime.AddMinutes(10),
         };
@@ -48,8 +46,6 @@ public sealed class TicketPersistenceTests : IDisposable
         Assert.Equal(original.Sentiment, reloaded.Sentiment);
         Assert.Equal(original.AiSummary, reloaded.AiSummary);
         Assert.Equal(original.SuggestedAction, reloaded.SuggestedAction);
-        Assert.Equal(original.DraftReply, reloaded.DraftReply);
-        Assert.Equal(original.DraftReplyGeneratedAt, reloaded.DraftReplyGeneratedAt);
         Assert.Equal(original.CreatedAt, reloaded.CreatedAt);
         Assert.Equal(original.UpdatedAt, reloaded.UpdatedAt);
     }
@@ -68,8 +64,6 @@ public sealed class TicketPersistenceTests : IDisposable
         Assert.Null(reloaded.Sentiment);
         Assert.Null(reloaded.AiSummary);
         Assert.Null(reloaded.SuggestedAction);
-        Assert.Null(reloaded.DraftReply);
-        Assert.Null(reloaded.DraftReplyGeneratedAt);
     }
 
     [Fact]
@@ -100,8 +94,6 @@ public sealed class TicketPersistenceTests : IDisposable
     public async Task Timestamps_ComeBackWithUtcKind()
     {
         var ticket = NewTicket("Slow dashboard", BaseTime);
-        ticket.DraftReply = "Thanks, we are looking into it.";
-        ticket.DraftReplyGeneratedAt = BaseTime.AddHours(1);
         var id = await SaveAsync(ticket);
 
         await using var context = _database.CreateContext();
@@ -109,8 +101,6 @@ public sealed class TicketPersistenceTests : IDisposable
 
         Assert.Equal(DateTimeKind.Utc, reloaded.CreatedAt.Kind);
         Assert.Equal(DateTimeKind.Utc, reloaded.UpdatedAt.Kind);
-        Assert.NotNull(reloaded.DraftReplyGeneratedAt);
-        Assert.Equal(DateTimeKind.Utc, reloaded.DraftReplyGeneratedAt!.Value.Kind);
         Assert.Equal(BaseTime, reloaded.CreatedAt);
     }
 
@@ -166,7 +156,7 @@ public sealed class TicketPersistenceTests : IDisposable
         Assert.Equal(4000, entity.FindProperty(nameof(Ticket.Description))!.GetMaxLength());
         Assert.Equal(500, entity.FindProperty(nameof(Ticket.AiSummary))!.GetMaxLength());
         Assert.Equal(500, entity.FindProperty(nameof(Ticket.SuggestedAction))!.GetMaxLength());
-        Assert.Equal(4000, entity.FindProperty(nameof(Ticket.DraftReply))!.GetMaxLength());
+        Assert.Null(entity.FindProperty("DraftReply")); // drafts are returned, never stored (FR-07)
         Assert.False(entity.FindProperty(nameof(Ticket.Title))!.IsNullable);
         Assert.False(entity.FindProperty(nameof(Ticket.Description))!.IsNullable);
         Assert.Contains(

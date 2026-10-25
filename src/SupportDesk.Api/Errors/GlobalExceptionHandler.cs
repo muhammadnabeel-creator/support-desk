@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +55,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         LogFailure(exception, problem.Status!.Value, traceId);
 
         httpContext.Response.StatusCode = problem.Status.Value;
+        if (exception is AiRateLimitedException rateLimited)
+        {
+            // Tells well-behaved clients how long to wait before the next AI request.
+            httpContext.Response.Headers.RetryAfter = rateLimited.RetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
+        }
+
         var written = await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
@@ -88,7 +95,8 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                     notFound.TicketId,
                     traceId);
                 break;
-            case AiInvalidOutputException or AiProviderException or AiNotConfiguredException or AiTimeoutException:
+            case AiInvalidOutputException or AiProviderException or AiNotConfiguredException or AiTimeoutException
+                or AiRateLimitedException:
                 // Type name only: the exception object (stack, inner messages) is never logged (NFR2.19).
                 _logger.LogWarning(
                     "AI request failed with {ExceptionType} and returned {StatusCode}. TraceId {TraceId}",

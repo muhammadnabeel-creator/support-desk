@@ -39,13 +39,6 @@ namespace SupportDesk.Api.Infrastructure.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("DraftReply")
-                        .HasMaxLength(4000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("DraftReplyGeneratedAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(32)
