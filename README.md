@@ -128,7 +128,12 @@ dotnet run --project src/SupportDesk.Api --launch-profile http
 
 Ready-made requests for every endpoint, including invalid ones, are in
 [`src/SupportDesk.Api/SupportDesk.Api.http`](src/SupportDesk.Api/SupportDesk.Api.http). You can run them with
-the VS Code REST Client, Visual Studio or a JetBrains IDE, or copy them into Postman.
+the VS Code REST Client, Visual Studio or a JetBrains IDE.
+
+**Postman:** import [`docs/postman/SupportDesk.postman_collection.json`](docs/postman/SupportDesk.postman_collection.json)
+(the same requests, in Tickets, AI and Dashboard folders; the `baseUrl` and `ticketId` variables are on the
+collection). Alternatively, import the OpenAPI document [`docs/postman/openapi.json`](docs/postman/openapi.json), or
+the live one at `http://localhost:5189/swagger/v1/swagger.json` while the API runs.
 
 **Create a ticket**
 

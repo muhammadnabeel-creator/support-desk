@@ -1,0 +1,1012 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "SupportDesk AI API",
+    "description": "Support tickets with AI-assisted analysis and draft replies. For local use only; there is no authentication.",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/dashboard/summary": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Returns ticket counts for the support lead (US3.1).",
+        "description": "`open` counts only status Open (InProgress has its own count); `highPriority` counts High and\r\n            Critical tickets in any status; `unanalyzed` counts tickets with no category yet. All counts are 0\r\n            when there are no tickets.",
+        "responses": {
+          "200": {
+            "description": "The counts.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets": {
+      "post": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Creates a ticket (US1.1).",
+        "description": "Title and description are trimmed and then checked: title 3-200 characters, description 10-4000.\r\nA new ticket is Open with Medium priority and no AI fields; other fields in the body are ignored.",
+        "requestBody": {
+          "description": "The title and description.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created. The Location header points to the new ticket.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A field is missing or invalid, or the body is not valid JSON.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Lists tickets, newest first (US1.2).",
+        "description": "Tickets are ordered by creation time, newest first; tickets created at the same time are ordered by id,\r\nhighest first. Filters are optional, combined with AND, and matched case-insensitively against enum\r\nnames. An empty filter value (for example `?status=`) is ignored.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Keep only tickets with this status: Open, InProgress, Resolved or Closed.",
+            "schema": {
+              "$ref": "#/components/schemas/TicketStatus"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Keep only tickets with this priority: Low, Medium, High or Critical.",
+            "schema": {
+              "$ref": "#/components/schemas/TicketPriority"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Keep only tickets with this AI category: AccountAccess, Billing, TechnicalIssue, FeatureRequest, GeneralInquiry or Other.",
+            "schema": {
+              "$ref": "#/components/schemas/TicketCategory"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The 1-based page number. Default 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Tickets per page, 1-200. Default 50.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of matching tickets.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponsePagedResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponsePagedResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter value is not one of the allowed names, or page / pageSize is out of range.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}": {
+      "get": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Gets one ticket with every field, including its AI analysis (US1.3).",
+        "operationId": "GetTicket",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ticket id: a positive whole number.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ticket.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a positive whole number.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No ticket has this id.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Updates the title, description and priority of a ticket (US1.4).",
+        "description": "All three fields are required. Status and AI fields cannot be changed here; if they are sent they are\r\nignored. Use `PATCH /api/tickets/{id}/status` to change the status.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ticket id: a positive whole number.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The new title, description and priority.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated ticket.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is invalid, a field is missing or invalid, or the body is not valid JSON.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No ticket has this id.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}/status": {
+      "patch": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Sets the status of a ticket; any status may follow any status (US1.5).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ticket id: a positive whole number.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The new status.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated ticket.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is invalid, the status is missing or unknown, or the body is not valid JSON.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No ticket has this id.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}/analyze": {
+      "post": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Analyzes a ticket with AI and saves the result; the AI-suggested priority overwrites the ticket's priority (US2.1).",
+        "description": "Works for a ticket in any status, and never changes the status. Only the title and description are sent to\r\nthe AI. The validated category, sentiment, summary, suggested action and priority replace any earlier\r\nanalysis; `previousPriority` shows the priority before it was overwritten. If the AI fails, times out\r\nor returns invalid output, nothing is saved. No request body.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ticket id: a positive whole number.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The validated analysis, now saved on the ticket.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a positive whole number.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No ticket has this id; the AI was not called.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The AI provider failed or returned invalid output. Nothing was saved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI features are not configured on this server. Ticket operations still work.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The AI provider did not respond in time. Nothing was saved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}/draft-reply": {
+      "post": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Generates an AI reply draft and returns it for human review (FR-07, US2.4). It is not saved and never sent.",
+        "description": "Nothing is emailed, messaged, posted or stored: the draft is only returned, for an agent to review and edit.\r\nThe ticket is not changed. Works for a ticket in any status. When the ticket has been analyzed, its saved\r\nanalysis is given to the AI as context. No request body.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ticket id: a positive whole number.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The draft, for human review; not saved and not sent.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftReplyResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftReplyResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftReplyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The id is not a positive whole number.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No ticket has this id; the AI was not called.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The AI provider failed or returned invalid output. Nothing was saved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI features are not configured on this server. Ticket operations still work.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The AI provider did not respond in time. Nothing was saved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisResponse": {
+        "required": [
+          "category",
+          "previousPriority",
+          "priority",
+          "sentiment",
+          "suggestedAction",
+          "summary",
+          "ticket"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/TicketCategory"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/TicketPriority"
+          },
+          "sentiment": {
+            "$ref": "#/components/schemas/TicketSentiment"
+          },
+          "summary": {
+            "type": "string",
+            "description": "A short summary of the ticket: 1-500 characters.",
+            "nullable": true
+          },
+          "suggestedAction": {
+            "type": "string",
+            "description": "The suggested next action for the support agent: 1-500 characters.",
+            "nullable": true
+          },
+          "previousPriority": {
+            "$ref": "#/components/schemas/TicketPriority"
+          },
+          "ticket": {
+            "$ref": "#/components/schemas/TicketResponse"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of a successful `POST /api/tickets/{id}/analyze` (contract C1 `AnalysisResponse`, BR7.4):\r\nthe five validated analysis fields, the priority the ticket had before the analysis overwrote it, and the\r\nupdated ticket. Enums are written as names."
+      },
+      "CreateTicketRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Short summary of the request: 3-200 characters after trimming.",
+            "nullable": true,
+            "example": "Cannot log in after password reset"
+          },
+          "description": {
+            "type": "string",
+            "description": "Full description of the request: 10-4000 characters after trimming.",
+            "nullable": true,
+            "example": "I reset my password this morning and now the login page says my account is locked."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of `POST /api/tickets` (contract C1). Only these two fields are read; any other field in the\r\nrequest is ignored, so status, priority and AI fields always start at their defaults (BR1.4).\r\nProperties are nullable so a missing field is reported as missing; trimming and length checks\r\nare done by the ticket service (BR1.1, BR1.2)."
+      },
+      "DashboardSummaryResponse": {
+        "required": [
+          "closed",
+          "highPriority",
+          "inProgress",
+          "open",
+          "resolved",
+          "total",
+          "unanalyzed"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "All tickets.",
+            "format": "int32",
+            "example": 4
+          },
+          "open": {
+            "type": "integer",
+            "description": "Tickets with status Open.",
+            "format": "int32",
+            "example": 3
+          },
+          "inProgress": {
+            "type": "integer",
+            "description": "Tickets with status InProgress.",
+            "format": "int32",
+            "example": 0
+          },
+          "resolved": {
+            "type": "integer",
+            "description": "Tickets with status Resolved.",
+            "format": "int32",
+            "example": 1
+          },
+          "closed": {
+            "type": "integer",
+            "description": "Tickets with status Closed.",
+            "format": "int32",
+            "example": 0
+          },
+          "highPriority": {
+            "type": "integer",
+            "description": "Tickets with priority High or Critical, in any status.",
+            "format": "int32",
+            "example": 2
+          },
+          "unanalyzed": {
+            "type": "integer",
+            "description": "Tickets not analyzed yet (no category set).",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of `GET /api/dashboard/summary` (contract C1 `DashboardSummary`)."
+      },
+      "DraftReplyResponse": {
+        "required": [
+          "draft",
+          "generatedAt",
+          "ticketId"
+        ],
+        "type": "object",
+        "properties": {
+          "ticketId": {
+            "type": "integer",
+            "description": "The id of the ticket the draft belongs to.",
+            "format": "int32",
+            "example": 1
+          },
+          "draft": {
+            "type": "string",
+            "description": "The draft reply text: 1-4000 characters. Not sent to anyone.",
+            "nullable": true
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "UTC time the draft was generated. The draft is not stored on the ticket.",
+            "format": "date-time"
+          },
+          "notice": {
+            "type": "string",
+            "description": "Always `Draft \u2014 requires human review; not sent`.",
+            "nullable": true,
+            "readOnly": true,
+            "example": "Draft \u2014 requires human review; not sent"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of a successful `POST /api/tickets/{id}/draft-reply` (contract C1 `DraftReplyResponse`, BR9.3).\r\nThe draft is returned for a human to review and edit; it is not stored and never sent (FR-07, BR9.4). The field is called\r\n`notice`, not `status`, so it cannot be confused with the ticket's status."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
+      "TicketCategory": {
+        "enum": [
+          "AccountAccess",
+          "Billing",
+          "TechnicalIssue",
+          "FeatureRequest",
+          "GeneralInquiry",
+          "Other"
+        ],
+        "type": "string",
+        "description": "Category of a ticket, set only by AI analysis (contract C3). Stored and transmitted by name."
+      },
+      "TicketPriority": {
+        "enum": [
+          "Low",
+          "Medium",
+          "High",
+          "Critical"
+        ],
+        "type": "string",
+        "description": "Priority of a ticket (contract C3). Stored and transmitted by name, never by number."
+      },
+      "TicketResponse": {
+        "required": [
+          "createdAt",
+          "description",
+          "id",
+          "priority",
+          "status",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The ticket id (a positive whole number).",
+            "format": "int32",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary of the request (stored trimmed).",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Full description of the request (stored trimmed).",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/TicketPriority"
+          },
+          "category": {
+            "$ref": "#/components/schemas/TicketCategory"
+          },
+          "sentiment": {
+            "$ref": "#/components/schemas/TicketSentiment"
+          },
+          "aiSummary": {
+            "type": "string",
+            "description": "Short AI summary; null until the ticket is analyzed.",
+            "nullable": true
+          },
+          "suggestedAction": {
+            "type": "string",
+            "description": "AI-suggested next action; null until the ticket is analyzed.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "UTC creation time.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "UTC time of the last change.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A ticket as returned by the API, with every field (contract C1 `Ticket` schema, BR3.3).\r\nEnums are written as names; timestamps are ISO 8601 UTC ending in `Z`.\r\nKept separate from the SupportDesk.Api.Domain.Ticket entity so the entity is never bound from or exposed to HTTP directly."
+      },
+      "TicketResponsePagedResponse": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TicketResponse"
+            },
+            "description": "The items on this page, newest first; empty when the page is past the end.",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "description": "The 1-based page number returned.",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Items per page.",
+            "format": "int32",
+            "example": 50
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Items matching the filters across all pages.",
+            "format": "int32",
+            "example": 137
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Number of pages at this page size; 0 when nothing matches.",
+            "format": "int32",
+            "example": 3
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of `GET /api/tickets` and of the `list_tickets` MCP tool: one page of tickets."
+      },
+      "TicketSentiment": {
+        "enum": [
+          "Positive",
+          "Neutral",
+          "Negative",
+          "Frustrated"
+        ],
+        "type": "string",
+        "description": "Customer sentiment of a ticket, set only by AI analysis (contract C3). Stored and transmitted by name."
+      },
+      "TicketStatus": {
+        "enum": [
+          "Open",
+          "InProgress",
+          "Resolved",
+          "Closed"
+        ],
+        "type": "string",
+        "description": "Lifecycle status of a ticket (contract C3). Stored and transmitted by name, never by number."
+      },
+      "UpdateStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of `PATCH /api/tickets/{id}/status` (contract C1). Any status may follow any status (BR5.1).\r\nThe property is nullable so a missing status is a 400 instead of silently becoming `Open` (BR5.2)."
+      },
+      "UpdateTicketRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The new title: 3-200 characters after trimming.",
+            "nullable": true,
+            "example": "Cannot log in after password reset"
+          },
+          "description": {
+            "type": "string",
+            "description": "The new description: 10-4000 characters after trimming.",
+            "nullable": true,
+            "example": "The account is still locked two hours after the reset."
+          },
+          "priority": {
+            "$ref": "#/components/schemas/TicketPriority"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of `PUT /api/tickets/{id}` (contract C1). All three fields are required together (BR4.1).\r\nStatus and AI fields are not part of this request; if a client sends them they are ignored (BR4.2).\r\nProperties are nullable so a missing priority is a 400 instead of silently becoming `Low`."
+      },
+      "ValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5189"
+    }
+  ]
+}
