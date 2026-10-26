@@ -8,8 +8,39 @@ are available to LLM clients through a Model Context Protocol (MCP) server.
 > **Use demo data only.** Ticket text is sent to Groq for analysis and drafts, and to your MCP client (for example
 > Claude Code) in tool results. Never enter real customer, confidential or personal data.
 
+## Quick start
+
+Needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Run these from the repository root:
+
+```bash
+# 1. Restore packages and the EF Core tool, then create the database
+dotnet restore
+dotnet tool restore
+dotnet ef database update --project src/SupportDesk.Api
+
+# 2. Build and run the tests (no AI key or network needed)
+dotnet build
+dotnet test
+
+# 3. Optional: add your Groq key for the AI features (analyze, draft-reply)
+dotnet user-secrets set "Ai:Groq:ApiKey" "<your-groq-api-key>" --project src/SupportDesk.Api
+
+# 4. Start the API
+dotnet run --project src/SupportDesk.Api --launch-profile http
+```
+
+Then open **<http://localhost:5189/swagger>** to try every endpoint. Example requests are also in
+[`src/SupportDesk.Api/SupportDesk.Api.http`](src/SupportDesk.Api/SupportDesk.Api.http).
+
+**MCP:** open this folder in Claude Code after `dotnet build`. The project's `.mcp.json` starts the MCP server
+over stdio automatically; approve it, then run `/mcp`. While the API is running, MCP is also available over HTTP at
+`http://localhost:5189/mcp`. See [MCP server](#mcp-server).
+
+Without a Groq key everything works except analyze and draft-reply, which return 503.
+
 ## Contents
 
+- [Quick start](#quick-start)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Configuration (Groq key)](#configuration-groq-key)
@@ -186,11 +217,11 @@ Critical tickets in any status, and `unanalyzed` counts tickets with no category
 MCP is available in two ways. Both use the same eight tools, services, database and configuration as the REST
 API:
 
-- **HTTP, always on with the API:** while the API runs, MCP is served at `http://localhost:5189/mcp`
-  (Streamable HTTP). Start the API once and connect the client by URL.
-- **stdio:** the client starts its own copy of the program with `--mcp` and talks over standard input and
-  output. The API does not need to be running, and nothing listens on the network. The brief requires this
-  transport.
+- **stdio (the default):** the MCP client starts its own copy of the program with `--mcp` and talks over
+  standard input and output. The API does not need to be running, and nothing listens on the network. The
+  repository's `.mcp.json` sets this up for Claude Code automatically. The brief requires this transport.
+- **HTTP, always on with the API:** while the API runs (`dotnet run`), MCP is also served at
+  `http://localhost:5189/mcp` (Streamable HTTP), for clients that connect by URL.
 
 | Tool | Same as | Input |
 |---|---|---|
@@ -206,8 +237,38 @@ API:
 Results use the same JSON as the REST API. Failures come back as tool error results (`isError: true`) with the
 same `status`, `title` and `detail` as the REST errors. There is no delete tool.
 
-**Option A: HTTP (easiest).** Start the API (`dotnet run --project src/SupportDesk.Api --launch-profile http`),
-then:
+**Option A: stdio (default, via the project's `.mcp.json`).**
+
+1. Build once, after the [setup](#setup) steps. The client starts the built program, not `dotnet run`, so build
+   output can never mix with MCP messages:
+
+   ```bash
+   dotnet build
+   ```
+
+2. Start Claude Code **from the repository root**. It reads [`.mcp.json`](.mcp.json):
+
+   ```json
+   {
+     "mcpServers": {
+       "supportdesk": {
+         "type": "stdio",
+         "command": "dotnet",
+         "args": ["src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll", "--mcp"]
+       }
+     }
+   }
+   ```
+
+   The first time, Claude Code asks you to approve this project MCP server. Then run `/mcp`: `supportdesk`
+   should be connected with eight tools. Try: "list my open tickets", "analyze ticket 1", "draft a reply for
+   ticket 1".
+
+The Groq key from `dotnet user-secrets` is picked up automatically, and the database is the same file the API
+uses. If you registered `supportdesk` yourself earlier (for example over HTTP), remove that entry first
+(`claude mcp remove supportdesk -s local`), because a personal entry takes priority over the project one.
+
+**Option B: HTTP.** Start the API (`dotnet run --project src/SupportDesk.Api --launch-profile http`), then:
 
 ```bash
 claude mcp add --transport http supportdesk http://localhost:5189/mcp
@@ -216,29 +277,8 @@ claude mcp add --transport http supportdesk http://localhost:5189/mcp
 The API must be running while you use the tools. MCP Inspector can also connect to the same URL, using the
 "Streamable HTTP" transport.
 
-**Option B: stdio.**
-
-**1. Build once**, after the [setup](#setup) steps. The client starts the built program, not `dotnet run`, so
-build output can never mix with MCP messages:
-
-```bash
-dotnet build
-```
-
-The program path below is `<repo>/src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll`. Replace `<repo>`
-with the absolute path of your clone. The Groq key from `dotnet user-secrets` is picked up automatically, and the
-database is the same file the API uses, whatever folder the client starts from.
-
-**2a. Claude Code** (the client used for the demo):
-
-```bash
-claude mcp add supportdesk -- dotnet <repo>/src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll --mcp
-```
-
-Restart Claude Code and run `/mcp`. `supportdesk` should be connected with eight tools. Then try: "list my open
-tickets", "analyze ticket 1", "draft a reply for ticket 1".
-
-**2b. Claude Desktop** (`claude_desktop_config.json`), or a project `.mcp.json` for Claude Code:
+**Claude Desktop** (`claude_desktop_config.json`), over stdio. Desktop needs an absolute path; replace `<repo>`
+with the folder of your clone:
 
 ```json
 {
@@ -254,7 +294,7 @@ tickets", "analyze ticket 1", "draft a reply for ticket 1".
 To pass the key through the client instead of user secrets, add `"env": { "Ai__Groq__ApiKey": "<your-key>" }`.
 Only do this in a local, uncommitted config file.
 
-**2c. MCP Inspector** (browser-based test client):
+**MCP Inspector** (browser-based test client), over stdio:
 
 ```bash
 npx @modelcontextprotocol/inspector dotnet <repo>/src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll --mcp

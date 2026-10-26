@@ -90,7 +90,7 @@ public sealed class TicketTools
     /// <param name="cancellationToken">Cancelled when the client cancels the call.</param>
     /// <returns>The ticket, or an error result.</returns>
     [McpServerTool(Name = "get_ticket", ReadOnly = true)]
-    [Description("Get one ticket by id, including its AI analysis and latest draft reply.")]
+    [Description("Get one ticket by id, including its AI analysis.")]
     public Task<CallToolResult> GetTicketAsync(
         [Description("Ticket id, a whole number of 1 or more.")] int id,
         CancellationToken cancellationToken) =>
@@ -169,7 +169,7 @@ public sealed class TicketTools
     /// <summary>Drafts a reply for human review (same as <c>POST /api/tickets/{id}/draft-reply</c>).</summary>
     /// <param name="id">The ticket id.</param>
     /// <param name="cancellationToken">Cancelled when the client cancels the call.</param>
-    /// <returns>The stored draft with its review notice, or an error result.</returns>
+    /// <returns>The draft with its review notice (not stored, never sent), or an error result.</returns>
     [McpServerTool(Name = "draft_reply", Destructive = false, OpenWorld = true)]
     [Description("Ask the AI to draft a reply to the customer. The draft is returned for a human to review and edit; it is not saved and never sent.")]
     public Task<CallToolResult> DraftReplyAsync(

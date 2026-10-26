@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "supportdesk": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": ["src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll", "--mcp"]
+    }
+  }
+}

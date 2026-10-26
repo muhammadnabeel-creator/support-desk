@@ -20,7 +20,7 @@ public sealed record DraftReplyResponse
     /// <summary>The draft reply text: 1-4000 characters. Not sent to anyone.</summary>
     public required string Draft { get; init; }
 
-    /// <summary>UTC time the draft was generated; equal to the ticket's <c>draftReplyGeneratedAt</c>.</summary>
+    /// <summary>UTC time the draft was generated. The draft is not stored on the ticket.</summary>
     public required DateTime GeneratedAt { get; init; }
 
     /// <summary>Always <c>Draft — requires human review; not sent</c>.</summary>

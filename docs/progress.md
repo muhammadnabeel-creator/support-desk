@@ -37,7 +37,7 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 - [x] Task D — no-key check (503), user-secrets commands, docs and format — approved 2026-10-20
 - [x] Code review READY (5 minor findings; R-01 key trim and R-02 token limits fixed, the rest carried to U4); `dotnet build && dotnet test` verified 18/18
 - [x] Groq model switched to `openai/gpt-oss-120b` (old model returned 404); analyze and draft-reply tested with your key; Unit 2 signed off 2026-10-20
-- [ ] Unit 2 merged to `main` (by you)
+- [x] Unit 2 merged to `main` (by you)
 
 ## Change Request — MCP server (trainer's updated brief, 2026-10-21)
 
@@ -51,13 +51,13 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 ## Unit 3 — Dashboard
 
 - [x] Implemented directly at your request (2026-10-21): `GET /api/dashboard/summary` with `IDashboardService` (read-only counts, no AI); build 0 warnings, 18/18 tests, format clean; smoke-checked against the ticket data
-- [ ] Your Postman check; AI-DLC records for U3 to be caught up; merged to `main`
+- [x] Merged to `main` (by you); AI-DLC stage records for U3 not caught up (built directly at your request)
 
 ## Unit 5 — MCP Server (built before Unit 4)
 
 - [x] Implemented directly (2026-10-21): `--mcp` stdio mode with the official SDK (ModelContextProtocol 2.3.0), 8 tools calling the same services, shared registration/JSON/error mapping/input parsing; build 0 warnings, 18/18 tests, format clean
 - [x] Scripted stdio check from another folder: 8 tools listed, all tools OK, 400/404 errors in the shared shape, analyze + draft via Groq OK, stdout clean
-- [ ] Your Claude Code check + evidence screenshot/log; merged to `main`
+- [x] Merged to `main` (by you); you connected Claude Code over HTTP; stdio is now the default via `.mcp.json`
 
 ## Unit 4 — Release Kit
 
@@ -65,5 +65,6 @@ Each task is ticked only after its approval. Plan: `aidlc/spaces/default/intents
 - [x] `src/SupportDesk.Api/SupportDesk.Api.http` (every endpoint + invalid examples), `.env.example` (placeholders only)
 - [x] `docs/mcp-evidence/` with the stdio smoke-test log; ProblemDetails now also for unknown routes (404) and wrong methods (405)
 - [x] Secrets scan clean; database file ignored by Git
-- [ ] Your Claude Code screenshot/log in `docs/mcp-evidence/`; merged to `main`
+- [x] Merged to `main` (by you)
+- [ ] Your Claude Code screenshot/log in `docs/mcp-evidence/` (required by the brief)
 - [ ] Clean-clone release gate (after Task F tests)

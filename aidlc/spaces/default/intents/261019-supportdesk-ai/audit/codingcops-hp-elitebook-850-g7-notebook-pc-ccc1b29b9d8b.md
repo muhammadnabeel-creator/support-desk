@@ -12343,3 +12343,333 @@
 **Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
 
 ---
+
+## Human Turn
+**Timestamp**: 2026-10-25T19:06:46Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-25T19:07:58Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T07:44:43Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Resume
+**Timestamp**: 2026-10-26T07:44:48Z
+**Event**: SESSION_RESUMED
+**Source**: resume
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T07:44:50Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T07:45:12Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Resume
+**Timestamp**: 2026-10-26T07:45:15Z
+**Event**: SESSION_RESUMED
+**Source**: resume
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T07:45:42Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Resume
+**Timestamp**: 2026-10-26T07:45:45Z
+**Event**: SESSION_RESUMED
+**Source**: resume
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T08:09:56Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T08:22:25Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T08:23:25Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Change Request: stdio as the default MCP transport
+**Timestamp**: 2026-10-26T08:24:47Z
+**User request**: hmy isko stdio pr b chlana hai by defalut
+**Action taken**: added a project .mcp.json registering supportdesk as a stdio server (dotnet src/SupportDesk.Api/bin/Debug/net8.0/SupportDesk.Api.dll --mcp), so Claude Code starts it automatically for anyone opening the repo; README MCP section now presents stdio via .mcp.json as option A (default) and HTTP /mcp as option B
+**Outcome**: stdio server started from the repo root completes the handshake, lists 8 tools and reads the real database; HTTP /mcp inside the running API unchanged
+**Note**: dotnet run itself cannot also serve stdio (the client must own the process's stdin/stdout); the person's existing local-scope HTTP registration overrides the project entry until removed
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T08:29:11Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T08:47:55Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:01:46Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:07:09Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T09:09:51Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Start
+**Timestamp**: 2026-10-26T09:10:18Z
+**Event**: SESSION_STARTED
+**Source**: startup
+**Session**: 7106c8dc-9fef-497d-a09c-b936a773d5bb
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T09:10:28Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T09:10:49Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Start
+**Timestamp**: 2026-10-26T09:11:14Z
+**Event**: SESSION_STARTED
+**Source**: startup
+**Session**: 2d1df7c7-46b0-478b-8ead-e05525869f46
+
+---
+
+## Session End
+**Timestamp**: 2026-10-26T09:11:15Z
+**Event**: SESSION_ENDED
+**Reason**: other
+
+---
+
+## Session Resume
+**Timestamp**: 2026-10-26T09:11:23Z
+**Event**: SESSION_RESUMED
+**Source**: resume
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:17:53Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:20:34Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:24:30Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:29:11Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:39:22Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:42:01Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:45:04Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:47:21Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T09:50:53Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T10:02:41Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T10:19:51Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T10:22:57Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T10:35:23Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:06:00Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:17:39Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:20:09Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:24:57Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:31:34Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:44:16Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:46:23Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:47:55Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
+
+## Human Turn
+**Timestamp**: 2026-10-26T12:49:35Z
+**Event**: HUMAN_TURN
+**Session**: e4a27606-e349-420c-a0ea-6c21a1b0bcd1
+
+---
